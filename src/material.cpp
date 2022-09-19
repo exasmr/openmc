@@ -750,16 +750,65 @@ void Material::init_nuclide_index()
   }
 }
 
-void Material::calculate_xs(Particle& p, bool need_depletion_rx) const
+void Material::calculate_xs(Particle& p) const
 {
   if (p.type_ == Particle::Type::neutron) {
-    this->calculate_neutron_xs(p, need_depletion_rx);
+    this->calculate_neutron_xs(p);
   } else if (p.type_ == Particle::Type::photon) {
     this->calculate_photon_xs(p);
   }
 }
 
-void Material::calculate_neutron_xs(Particle& p, bool need_depletion_rx) const
+void Material::calculate_xs_no_depletion(Particle& p) const
+{
+  if (p.type_ == Particle::Type::neutron) {
+    this->calculate_neutron_xs_no_depletion(p);
+  } else if (p.type_ == Particle::Type::photon) {
+    this->calculate_photon_xs(p);
+  }
+}
+
+void Material::calculate_neutron_xs_no_depletion(Particle& p) const
+{
+  // Find energy index on energy grid
+  int neutron = static_cast<int>(Particle::Type::neutron);
+  int i_grid = std::log(p.E_/data::energy_min[neutron])/simulation::log_spacing;
+
+  // Local macro XS accumulator
+  MicroXS macro = {};
+
+  // Add contribution from each nuclide in material
+  for (int i = 0; i < nuclide_.size(); ++i) {
+
+    // Determine microscopic cross sections for this nuclide
+    int i_nuclide = nuclide_[i];
+
+    // Perform microscopic XS lookup
+    MicroXS nuclide_micro = data::nuclides[i_nuclide].calculate_xs_no_depletion(i_grid, p);
+
+    // If using a micro XS cache, store the result to the particle's cache
+    #ifndef NO_MICRO_XS_CACHE
+    p.neutron_xs_[i_nuclide] = nuclide_micro;
+    #endif
+
+    // Get atom density of nuclide in material
+    double atom_density = device_atom_density_[i];
+
+    // Accumulate this nuclide's contribution to the local macro XS variable
+    macro.total      += atom_density * nuclide_micro.total;
+    macro.absorption += atom_density * nuclide_micro.absorption;
+    macro.fission    += atom_density * nuclide_micro.fission;
+    macro.nu_fission += atom_density * nuclide_micro.nu_fission;
+  }
+
+  // Store accumulated macro XS to particle
+  p.macro_xs_.total      = macro.total;
+  p.macro_xs_.absorption = macro.absorption;
+  p.macro_xs_.fission    = macro.fission;
+  p.macro_xs_.nu_fission = macro.nu_fission;
+}
+
+void Material::calculate_neutron_xs(Particle& p) const
 {
   // Find energy index on energy grid
   int neutron = static_cast<int>(Particle::Type::neutron);
@@ -775,43 +824,24 @@ void Material::calculate_neutron_xs(Particle& p, bool need_depletion_rx) const
     // Determine microscopic cross sections for this nuclide
     int i_nuclide = nuclide_[i];
 
-    if (need_depletion_rx) {
-      // Perform microscopic XS lookup
-      NuclideMicroXS nuclide_micro = data::nuclides[i_nuclide].calculate_xs(i_grid, p, need_depletion_rx);
+    // Perform microscopic XS lookup
+    NuclideMicroXS nuclide_micro = data::nuclides[i_nuclide].calculate_xs(i_grid, p, true);
 
-      // If using a micro XS cache, store the result to the particle's cache
-      #ifndef NO_MICRO_XS_CACHE
-      p.neutron_xs_[i_nuclide] = nuclide_micro;
-      #endif
+    // If using a micro XS cache, store the result to the particle's cache
+    #ifndef NO_MICRO_XS_CACHE
+    p.neutron_xs_[i_nuclide] = nuclide_micro;
+    #endif
 
-      // Get atom density of nuclide in material
-      double atom_density = device_atom_density_[i];
+    // Get atom density of nuclide in material
+    double atom_density = device_atom_density_[i];
 
-      // Accumulate this nuclide's contribution to the local macro XS variable
-      macro.total      += atom_density * nuclide_micro.total;
-      macro.absorption += atom_density * nuclide_micro.absorption;
-      macro.fission    += atom_density * nuclide_micro.fission;
-      macro.nu_fission += atom_density * nuclide_micro.nu_fission;
-      for (int r = 0; r < DEPLETION_RX_SIZE; r++) 
-        reaction[r] += atom_density * nuclide_micro.reaction[r];
-    } else {
-      // Perform microscopic XS lookup
-      MicroXS nuclide_micro = data::nuclides[i_nuclide].calculate_xs_no_depletion(i_grid, p);
-
-      // If using a micro XS cache, store the result to the particle's cache
-      #ifndef NO_MICRO_XS_CACHE
-      p.neutron_xs_[i_nuclide] = nuclide_micro;
-      #endif
-
-      // Get atom density of nuclide in material
-      double atom_density = device_atom_density_[i];
-
-      // Accumulate this nuclide's contribution to the local macro XS variable
-      macro.total      += atom_density * nuclide_micro.total;
-      macro.absorption += atom_density * nuclide_micro.absorption;
-      macro.fission    += atom_density * nuclide_micro.fission;
-      macro.nu_fission += atom_density * nuclide_micro.nu_fission;
-    }
+    // Accumulate this nuclide's contribution to the local macro XS variable
+    macro.total      += atom_density * nuclide_micro.total;
+    macro.absorption += atom_density * nuclide_micro.absorption;
+    macro.fission    += atom_density * nuclide_micro.fission;
+    macro.nu_fission += atom_density * nuclide_micro.nu_fission;
+    for (int r = 0; r < DEPLETION_RX_SIZE; r++) 
+      reaction[r] += atom_density * nuclide_micro.reaction[r];
   }
 
   // Store accumulated macro XS to particle
@@ -819,10 +849,8 @@ void Material::calculate_neutron_xs(Particle& p, bool need_depletion_rx) const
   p.macro_xs_.absorption = macro.absorption;
   p.macro_xs_.fission    = macro.fission;
   p.macro_xs_.nu_fission = macro.nu_fission;
-  if (need_depletion_rx) {
-    for (int r = 0; r < DEPLETION_RX_SIZE; r++) 
-      p.macro_xs_.reaction[r] = reaction[r];
-  }
+  for (int r = 0; r < DEPLETION_RX_SIZE; r++) 
+    p.macro_xs_.reaction[r] = reaction[r];
 
 }
 

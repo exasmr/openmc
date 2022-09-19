@@ -60,7 +60,8 @@ public:
   // Methods
 
   #pragma omp declare target
-  void calculate_xs(Particle& p, bool need_depletion_rx) const;
+  void calculate_xs(Particle& p) const;
+  void calculate_xs_no_depletion(Particle& p) const;
   #pragma omp end declare target
 
   //! Assign thermal scattering tables to specific nuclides within the material
@@ -197,7 +198,8 @@ private:
   void normalize_density();
 
   #pragma omp declare target
-  void calculate_neutron_xs(Particle& p, bool need_depletion_rx) const;
+  void calculate_neutron_xs(Particle& p) const;
+  void calculate_neutron_xs_no_depletion(Particle& p) const;
   void calculate_photon_xs(Particle& p) const;
   #pragma omp end declare target
 

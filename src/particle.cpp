@@ -213,9 +213,15 @@ Particle::event_calculate_xs_dispatch()
 }
 
 void
-Particle::event_calculate_xs_execute(bool need_depletion_rx)
+Particle::event_calculate_xs_execute()
 {
-  model::materials[material_].calculate_xs(*this, need_depletion_rx);
+  model::materials[material_].calculate_xs(*this);
+}
+
+void
+Particle::event_calculate_xs_execute_no_depletion()
+{
+  model::materials[material_].calculate_xs_no_depletion(*this);
 }
 
 void
@@ -223,7 +229,7 @@ Particle::event_calculate_xs(bool need_depletion_rx)
 {
   bool needs_lookup = this->event_calculate_xs_dispatch();
   if (needs_lookup)
-    this->event_calculate_xs_execute(need_depletion_rx);
+    this->event_calculate_xs_execute();
 }
 
 void

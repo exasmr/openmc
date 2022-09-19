@@ -183,12 +183,22 @@ void process_calculate_xs_events_nonfuel()
 
   int offset = simulation::advance_particle_queue.size();;
 
-  #pragma omp target teams distribute parallel for
-  for (int i = 0; i < simulation::calculate_nonfuel_xs_queue.size(); i++) {
-    int buffer_idx = simulation::calculate_nonfuel_xs_queue[i].idx;
-    Particle& p = simulation::device_particles[buffer_idx];
-    p.event_calculate_xs_execute(need_depletion_rx);
-    simulation::advance_particle_queue[offset + i] = simulation::calculate_nonfuel_xs_queue[i];
+  if (need_depletion_rx) {
+    #pragma omp target teams distribute parallel for
+    for (int i = 0; i < simulation::calculate_nonfuel_xs_queue.size(); i++) {
+      int buffer_idx = simulation::calculate_nonfuel_xs_queue[i].idx;
+      Particle& p = simulation::device_particles[buffer_idx];
+      p.event_calculate_xs_execute();
+      simulation::advance_particle_queue[offset + i] = simulation::calculate_nonfuel_xs_queue[i];
+    }
+  } else {
+    #pragma omp target teams distribute parallel for
+    for (int i = 0; i < simulation::calculate_nonfuel_xs_queue.size(); i++) {
+      int buffer_idx = simulation::calculate_nonfuel_xs_queue[i].idx;
+      Particle& p = simulation::device_particles[buffer_idx];
+      p.event_calculate_xs_execute_no_depletion();
+      simulation::advance_particle_queue[offset + i] = simulation::calculate_nonfuel_xs_queue[i];
+    }
   }
 
   // After executing a calculate_xs event, particles will
@@ -217,12 +227,22 @@ void process_calculate_xs_events_fuel()
 
   int offset = simulation::advance_particle_queue.size();;
 
-  #pragma omp target teams distribute parallel for
-  for (int i = 0; i < simulation::calculate_fuel_xs_queue.size(); i++) {
-    int buffer_idx = simulation::calculate_fuel_xs_queue[i].idx;
-    Particle& p = simulation::device_particles[buffer_idx];
-    p.event_calculate_xs_execute(need_depletion_rx);
-    simulation::advance_particle_queue[offset + i] = simulation::calculate_fuel_xs_queue[i];
+  if (need_depletion_rx) {
+    #pragma omp target teams distribute parallel for
+    for (int i = 0; i < simulation::calculate_fuel_xs_queue.size(); i++) {
+      int buffer_idx = simulation::calculate_fuel_xs_queue[i].idx;
+      Particle& p = simulation::device_particles[buffer_idx];
+      p.event_calculate_xs_execute();
+      simulation::advance_particle_queue[offset + i] = simulation::calculate_fuel_xs_queue[i];
+    }
+  } else {
+    #pragma omp target teams distribute parallel for
+    for (int i = 0; i < simulation::calculate_fuel_xs_queue.size(); i++) {
+      int buffer_idx = simulation::calculate_fuel_xs_queue[i].idx;
+      Particle& p = simulation::device_particles[buffer_idx];
+      p.event_calculate_xs_execute_no_depletion();
+      simulation::advance_particle_queue[offset + i] = simulation::calculate_fuel_xs_queue[i];
+    }
   }
 
   // After executing a calculate_xs event, particles will

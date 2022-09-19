@@ -353,7 +353,8 @@ public:
   void event_tracklength_tally(bool need_depletion_rx);
   void event_calculate_xs(bool need_depletion_rx);
   bool event_calculate_xs_dispatch();
-  void event_calculate_xs_execute(bool need_depletion_rx);
+  void event_calculate_xs_execute();
+  void event_calculate_xs_execute_no_depletion();
   void event_collide();
   void event_advance();
   void event_cross_surface();
