@@ -374,6 +374,8 @@ void print_generation()
   if (n > 1) {
     fmt::print("   {:8.5f} +/-{:8.5f}", simulation::keff, simulation::keff_std);
   }
+
+  fmt::print("   {:d}  {:d}", simulation::n_events, simulation::n_work);
   std::cout << std::endl;
 }
 

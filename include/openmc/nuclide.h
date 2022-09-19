@@ -46,6 +46,7 @@ public:
 
   #pragma omp declare target
   NuclideMicroXS calculate_xs(int i_log_union, Particle& p, bool need_depletion_rx);
+  MicroXS calculate_xs_no_depletion(int i_log_union, Particle& p);
 
   // Methods
   double nu(double E, EmissionMode mode, int group=0) const;

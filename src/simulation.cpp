@@ -311,6 +311,8 @@ int64_t* device_work_index;
 std::vector<Particle>  particles;
 Particle*  device_particles;
 
+int n_events {0};
+long n_work {0};
 
 } // namespace simulation
 
@@ -872,6 +874,7 @@ void transport_event_based()
   process_init_events(n_particles);
 
   int event = 0;
+  int64_t work = 0;
 
   // Event-based transport loop
   while (true) {
@@ -902,16 +905,22 @@ void transport_event_based()
     if (max == 0) {
       break;
     } else if (max == simulation::revival_queue.size() || ( simulation::revival_queue.size() > 0 && event % max_revival_period == 0 )) {
+      work += simulation::revival_queue.size();
       process_revival_events();
     } else if (max == simulation::calculate_fuel_xs_queue.size()) {
+      work += simulation::calculate_fuel_xs_queue.size();
       process_calculate_xs_events_fuel();
     } else if (max == simulation::calculate_nonfuel_xs_queue.size()) {
+      work += simulation::calculate_nonfuel_xs_queue.size();
       process_calculate_xs_events_nonfuel();
     } else if (max == simulation::advance_particle_queue.size()) {
+      work += simulation::advance_particle_queue.size();
       process_advance_particle_events(n_particles);
     } else if (max == simulation::surface_crossing_queue.size()) {
+      work += simulation::surface_crossing_queue.size();
       process_surface_crossing_events();
     } else if (max == simulation::collision_queue.size()) {
+      work += simulation::collision_queue.size();
       process_collision_events();
     }
 
@@ -940,6 +949,9 @@ void transport_event_based()
       tally.update_device_to_host();
     }
   }
+
+  simulation::n_events = event;
+  simulation::n_work = work;
 
   #ifdef OPENMC_MPI
   MPI_Barrier( mpi::intracomm );

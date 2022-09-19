@@ -63,6 +63,8 @@ extern std::vector<Particle>  particles;
 extern Particle* device_particles;
 #pragma omp end declare target
 
+extern int n_events;
+extern long n_work;
 
 } // namespace simulation
 

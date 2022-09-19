@@ -145,6 +145,18 @@ public:
   void copy_to_device();
   void release_from_device();
 
+  uint64_t calculate_footprint()
+  {
+    uint64_t n = 0;
+    n += nuclide_.size() * sizeof(int);
+    n += element_.size() * sizeof(int);
+    n += mat_nuclide_index_.size() * sizeof(int);
+    n += p0_.size() * sizeof(int);
+    n += atom_density_.size() * sizeof(double);
+    n += thermal_tables_.size() * sizeof(ThermalTable);
+    return n;
+  }
+
   //----------------------------------------------------------------------------
   // Data
   int32_t id_ {C_NONE}; //!< Unique ID

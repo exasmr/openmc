@@ -184,7 +184,12 @@ void move_read_only_data_to_device()
 
   // Materials /////////////////////////////////////////////////////////
 
-  std::cout << "Moving " << model::materials_size << " materials to device..." << std::endl;
+  int n_bytes = model::materials_size * sizeof(Material);
+  for (int i = 0; i < model::materials_size; i++) {
+    n_bytes += model::materials[i].calculate_footprint();
+  }
+
+  std::cout << "Moving " << model::materials_size << " materials to device of total size: " << n_bytes * 1e-6 << " MB" << std::endl;
   int min = 99999;
   int max = 0;
   int n_over_200 = 0;
