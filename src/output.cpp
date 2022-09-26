@@ -425,6 +425,12 @@ void print_runtime()
   // display header block
   header("Runtime Information", 6);
   if (settings::verbosity < 6) return;
+  std::cout << "Fuel XS events:    " << simulation::e_fuel      << " " << simulation::ep_fuel << std::endl;
+  std::cout << "Nonfuel XS events: " << simulation::e_nonfuel   << " " << simulation::ep_nonfuel << std::endl; 
+  std::cout << "Advance events:    " << simulation::e_advance   << " " << simulation::ep_advance << std::endl; 
+  std::cout << "Surface events:    " << simulation::e_surface   << " " << simulation::ep_surface << std::endl; 
+  std::cout << "Collision events:  " << simulation::e_collision << " " << simulation::ep_collision << std::endl; 
+  std::cout << "Revival events:    " << simulation::e_revival   << " " << simulation::ep_revival << std::endl; 
 
   fmt::print(" Simulation Algorithm              = ");
   if (settings::event_based )

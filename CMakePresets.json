@@ -51,11 +51,19 @@
             }
         },
         {
-            "name": "spirv_aot",
+            "name": "spirv_aot_pvc",
             "inherits": ["intel"],
             "displayName": "Intel GPUs w/Ahead of Time (AOT) Compilation",
             "environment": {
-                "PRESET_CXX_FLAGS": "-fopenmp-targets=spir64_gen -Xopenmp-target-backend \"-device xehp -revision_id 4 -internal_options -ze-opt-large-register-file\" -mllvm -vpo-paropt-atomic-free-reduction=false"
+                "PRESET_CXX_FLAGS": "-fopenmp-targets=spir64_gen -Xopenmp-target-backend \"-device 12.60.7 -internal_options -ze-opt-large-register-file\" -mllvm -vpo-paropt-atomic-free-reduction=false -mllvm -indvars-widen-indvars=false"
+            }
+        },
+        {
+            "name": "spirv_aot_ats",
+            "inherits": ["intel"],
+            "displayName": "Intel GPUs w/Ahead of Time (AOT) Compilation",
+            "environment": {
+                "PRESET_CXX_FLAGS": "-fopenmp-targets=spir64_gen -Xopenmp-target-backend \"-device 12.50.4 -internal_options -ze-opt-large-register-file\" -mllvm -vpo-paropt-atomic-free-reduction=false -mllvm -indvars-widen-indvars=false"
             }
         },
         {

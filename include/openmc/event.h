@@ -85,6 +85,19 @@ extern int current_source_offset;
 
 extern int sort_counter;
 
+extern int e_fuel;
+extern int e_nonfuel;
+extern int e_advance;
+extern int e_surface;
+extern int e_collision;
+extern int e_revival;
+extern int64_t ep_fuel;
+extern int64_t ep_nonfuel;
+extern int64_t ep_advance;
+extern int64_t ep_surface;
+extern int64_t ep_collision;
+extern int64_t ep_revival;
+
 } // namespace simulation
 
 //==============================================================================

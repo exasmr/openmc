@@ -27,6 +27,20 @@ SharedArray<EventQueueItem> surface_crossing_queue;
 SharedArray<EventQueueItem> collision_queue;
 SharedArray<EventQueueItem> revival_queue;
 
+int e_fuel {0};
+int e_nonfuel {0};
+int e_advance {0};
+int e_surface {0};
+int e_collision {0};
+int e_revival {0};
+
+int64_t ep_fuel {0};
+int64_t ep_nonfuel {0};
+int64_t ep_advance {0};
+int64_t ep_surface {0};
+int64_t ep_collision {0};
+int64_t ep_revival {0};
+
 int current_source_offset;
 
 int sort_counter{0};
@@ -176,6 +190,8 @@ bool depletion_rx_check()
 
 void process_calculate_xs_events_nonfuel()
 {
+  simulation::e_nonfuel++;
+  simulation::ep_nonfuel += simulation::calculate_nonfuel_xs_queue.size();
   simulation::time_event_calculate_xs.start();
   simulation::time_event_calculate_xs_nonfuel.start();
 
@@ -213,6 +229,8 @@ void process_calculate_xs_events_nonfuel()
 
 void process_calculate_xs_events_fuel()
 {
+  simulation::e_fuel++;
+  simulation::ep_fuel += simulation::calculate_fuel_xs_queue.size();
   // Sort fuel lookup queue by energy
   sort_queue(simulation::calculate_fuel_xs_queue);
 
@@ -257,6 +275,8 @@ void process_calculate_xs_events_fuel()
 
 void process_advance_particle_events(int n_particles)
 {
+  simulation::e_advance++;
+  simulation::ep_advance += simulation::advance_particle_queue.size();
   simulation::time_event_advance_particle.start();
 
   #pragma omp target teams distribute parallel for
@@ -293,6 +313,8 @@ void process_advance_particle_events(int n_particles)
 
 void process_surface_crossing_events()
 {
+  simulation::e_surface++;
+  simulation::ep_surface += simulation::surface_crossing_queue.size();
   simulation::time_event_surface_crossing.start();
 
   #pragma omp target teams distribute parallel for
@@ -317,6 +339,8 @@ void process_surface_crossing_events()
 
 void process_collision_events()
 {
+  simulation::e_collision++;
+  simulation::ep_collision += simulation::collision_queue.size();
   simulation::time_event_collision.start();
 
   #pragma omp target teams distribute parallel for
@@ -372,6 +396,8 @@ void process_death_events(int n_particles)
 
 void process_revival_events()
 {
+  simulation::e_revival++;
+  simulation::ep_revival += simulation::revival_queue.size();
   simulation::time_event_revival.start();
 
   // Accumulator for particle weights from any sourced particles

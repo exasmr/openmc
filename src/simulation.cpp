@@ -145,6 +145,17 @@ int openmc_simulation_init()
     }
   }
 
+  // Count distribcell
+  uint64_t n_distribcells = 0;
+  for( int i = 0; i < model::cells.size(); i++ )
+  {
+    Cell& cell = model::cells[i];
+    if(cell.type_ != Fill::MATERIAL)
+      continue;
+    n_distribcells += cell.n_instances_;
+  }
+  std::cout << "Number of distribcells = " << n_distribcells << std::endl;
+
   #ifdef OPENMC_MPI
   MPI_Barrier( mpi::intracomm );
   #endif
