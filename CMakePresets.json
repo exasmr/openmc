@@ -32,6 +32,17 @@
             }
         },
         {
+            "name": "gcc_host",
+            "inherits": ["base"],
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            },
+            "environment": {
+                "LLVM_CXX_FLAGS": "-fopenmp"
+            }
+        },
+        {
             "name": "llvm",
             "inherits": ["unity"],
             "cacheVariables": {
