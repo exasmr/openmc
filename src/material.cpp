@@ -42,6 +42,20 @@ std::unordered_map<int32_t, int32_t> material_map;
 Material* materials;
 uint64_t materials_size;
 
+int     serial_materials_size;
+int     serial_materials_offset;
+int     serial_materials_element_size;
+int     serial_materials_element_offset;
+int     serial_materials_thermal_tables_size;
+int     serial_materials_thermal_tables_offset;
+
+int* serial_materials_nuclide;
+int* serial_materials_element;
+int* serial_materials_p0;
+int* serial_materials_mat_nuclide_index;
+ThermalTable* serial_materials_thermal_tables;
+double* serial_materials_atom_density;
+
 } // namespace model
 
 //==============================================================================
@@ -781,7 +795,7 @@ void Material::calculate_neutron_xs_no_depletion(Particle& p) const
   for (int i = 0; i < nuclide_.size(); ++i) {
 
     // Determine microscopic cross sections for this nuclide
-    int i_nuclide = nuclide_[i];
+    int i_nuclide = nuclide(i);
 
     // Perform microscopic XS lookup
     MicroXS nuclide_micro = data::nuclides[i_nuclide].calculate_xs_no_depletion(i_grid, p);
@@ -792,7 +806,7 @@ void Material::calculate_neutron_xs_no_depletion(Particle& p) const
     #endif
 
     // Get atom density of nuclide in material
-    double atom_density = device_atom_density_[i];
+    double atom_density = this->atom_density(i);
 
     // Accumulate this nuclide's contribution to the local macro XS variable
     macro.total      += atom_density * nuclide_micro.total;
@@ -822,7 +836,7 @@ void Material::calculate_neutron_xs(Particle& p) const
   for (int i = 0; i < nuclide_.size(); ++i) {
 
     // Determine microscopic cross sections for this nuclide
-    int i_nuclide = nuclide_[i];
+    int i_nuclide = nuclide(i);
 
     // Perform microscopic XS lookup
     NuclideMicroXS nuclide_micro = data::nuclides[i_nuclide].calculate_xs(i_grid, p, true);
@@ -833,7 +847,7 @@ void Material::calculate_neutron_xs(Particle& p) const
     #endif
 
     // Get atom density of nuclide in material
-    double atom_density = device_atom_density_[i];
+    double atom_density = this->atom_density(i);
 
     // Accumulate this nuclide's contribution to the local macro XS variable
     macro.total      += atom_density * nuclide_micro.total;
@@ -1123,13 +1137,13 @@ void Material::add_nuclide(const std::string& name, double density)
 
 void Material::copy_to_device()
 {
-  nuclide_.copy_to_device();
-  element_.copy_to_device();
-  mat_nuclide_index_.copy_to_device();
-  p0_.copy_to_device();
-  device_atom_density_ = atom_density_.data();
-  #pragma omp target enter data map(to: device_atom_density_[:atom_density_.size()])
-  thermal_tables_.copy_to_device();
+ // nuclide_.copy_to_device();
+  //element_.copy_to_device();
+  //mat_nuclide_index_.copy_to_device();
+  //p0_.copy_to_device();
+  //device_atom_density_ = atom_density_.data();
+  //#pragma omp target enter data map(to: device_atom_density_[:atom_density_.size()])
+  //thermal_tables_.copy_to_device();
   ttb_.copy_to_device();
 }
 

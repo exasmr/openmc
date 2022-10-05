@@ -24,6 +24,12 @@ namespace openmc {
 //==============================================================================
 
 class Material;
+  
+struct ThermalTable {
+  int index_table; //!< Index of table in data::thermal_scatt
+  int index_nuclide; //!< Index in nuclide_
+  double fraction; //!< How often to use table
+};
 
 namespace model {
 
@@ -31,6 +37,18 @@ extern std::unordered_map<int32_t, int32_t> material_map;
 #pragma omp declare target
 extern Material* materials;
 extern uint64_t materials_size;
+extern int     serial_materials_size;
+extern int     serial_materials_offset;
+extern int     serial_materials_element_size;
+extern int     serial_materials_element_offset;
+extern int     serial_materials_thermal_tables_size;
+extern int     serial_materials_thermal_tables_offset;
+extern int* serial_materials_nuclide;
+extern int* serial_materials_element;
+extern int* serial_materials_p0;
+extern int* serial_materials_mat_nuclide_index;
+extern ThermalTable* serial_materials_thermal_tables;
+extern double* serial_materials_atom_density;
 #pragma omp end declare target
 
 } // namespace model
@@ -44,11 +62,13 @@ class Material
 public:
   //----------------------------------------------------------------------------
   // Types
+  /*
   struct ThermalTable {
     int index_table; //!< Index of table in data::thermal_scatt
     int index_nuclide; //!< Index in nuclide_
     double fraction; //!< How often to use table
   };
+  */
 
   //----------------------------------------------------------------------------
   // Constructors, destructors, factory functions
@@ -146,15 +166,31 @@ public:
   void copy_to_device();
   void release_from_device();
 
+  #pragma omp declare target
+  int& nuclide(int i) {                 return model::serial_materials_nuclide[          index_ * model::serial_materials_offset + i]; }
+  int& element(int i) {                 return model::serial_materials_element[          index_ * model::serial_materials_element_offset + i]; }
+  double& atom_density(int i) {         return model::serial_materials_atom_density[     index_ * model::serial_materials_offset + i]; }
+  int& p0(int i) {                      return model::serial_materials_p0[               index_ * model::serial_materials_offset + i]; }
+  int& mat_nuclide_index(int i) {       return model::serial_materials_mat_nuclide_index[index_ * model::serial_materials_offset + i]; }
+  ThermalTable& thermal_tables(int i) { return model::serial_materials_thermal_tables[   index_ * model::serial_materials_thermal_tables_offset + i]; }
+  
+  int& nuclide(int i) const {                 return model::serial_materials_nuclide[          index_ * model::serial_materials_offset + i]; }
+  int& element(int i) const {                 return model::serial_materials_element[          index_ * model::serial_materials_element_offset + i]; }
+  double& atom_density(int i) const {         return model::serial_materials_atom_density[     index_ * model::serial_materials_offset + i]; }
+  int& p0(int i) const {                      return model::serial_materials_p0[               index_ * model::serial_materials_offset + i]; }
+  int& mat_nuclide_index(int i)const  {       return model::serial_materials_mat_nuclide_index[index_ * model::serial_materials_offset + i]; }
+  ThermalTable& thermal_tables(int i) const { return model::serial_materials_thermal_tables[   index_ * model::serial_materials_thermal_tables_offset + i]; }
+  #pragma omp end declare target
+
   uint64_t calculate_footprint()
   {
     uint64_t n = 0;
-    n += nuclide_.size() * sizeof(int);
-    n += element_.size() * sizeof(int);
-    n += mat_nuclide_index_.size() * sizeof(int);
-    n += p0_.size() * sizeof(int);
-    n += atom_density_.size() * sizeof(double);
-    n += thermal_tables_.size() * sizeof(ThermalTable);
+    //n += nuclide_.size() * sizeof(int);
+    //n += element_.size() * sizeof(int);
+    //n += mat_nuclide_index_.size() * sizeof(int);
+    //n += p0_.size() * sizeof(int);
+    //n += atom_density_.size() * sizeof(double);
+    //n += thermal_tables_.size() * sizeof(ThermalTable);
     return n;
   }
 
@@ -183,6 +219,7 @@ public:
   vector<ThermalTable> thermal_tables_;
 
   Bremsstrahlung ttb_;
+  gsl::index index_;
 
 private:
   //----------------------------------------------------------------------------
@@ -205,7 +242,7 @@ private:
 
   //----------------------------------------------------------------------------
   // Private data members
-  gsl::index index_;
+  //gsl::index index_;
 
   //! \brief Default temperature for cells containing this material.
   //!

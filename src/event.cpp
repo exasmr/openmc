@@ -156,42 +156,42 @@ void process_init_events(int n_particles)
 
   simulation::current_source_offset = n_particles;
   #pragma omp target update to(simulation::current_source_offset)
-
-  double total_weight = 0.0;
-
-  // WORKAROUND BEGIN //////////////////////////
-  static double *rval =      (double*)omp_target_alloc_device( sizeof(double), omp_get_default_device() );
-  static double *rval_host = (double*)omp_target_alloc_host(   sizeof(double), omp_get_default_device() );
-  rval_host[0] = 0.0;
-  omp_target_memcpy( rval, rval_host, sizeof(double), 0, 0, omp_get_default_device(), omp_get_initial_device() );
-  // WORKAROUND END //////////////////////////
-
+  
   #pragma omp target teams distribute parallel for
   for (int i = 0; i < n_particles; i++) {
     initialize_history(simulation::device_particles[i], i + 1);
     dispatch_xs_event(i);
   }
 
+  double total_weight = 0.0;
+
+  #ifdef REDUCTION_WORKAROUND
+  static double *rval =      (double*)omp_target_alloc_device( sizeof(double), omp_get_default_device() );
+  static double *rval_host = (double*)omp_target_alloc_host(   sizeof(double), omp_get_default_device() );
+  rval_host[0] = 0.0;
+  omp_target_memcpy( rval, rval_host, sizeof(double), 0, 0, omp_get_default_device(), omp_get_initial_device() );
+  #endif
+
   // The loop below can in theory be combined with the one above,
   // but is present here as a compiler bug workaround
-
-  // ORIGINAL ////////////////////////////////
-  //#pragma omp target teams distribute parallel for reduction(+:total_weight)
-  //for (int i = 0; i < n_particles; i++) {
-  //  total_weight += simulation::device_particles[i].wgt_;
-  //}
-
-  // WORKAROUND BEGIN //////////////////////////
+  #ifdef REDUCTION_WORKAROUND
   #pragma omp target is_device_ptr(rval)
   #pragma omp teams distribute parallel for reduction(+:rval[:1])
+  #else
+  #pragma omp target teams distribute parallel for reduction(+:total_weight)
+  #endif
   for (int i = 0; i < n_particles; i++) {
+    #ifdef REDUCTION_WORKAROUND
     rval[0] += simulation::device_particles[i].wgt_;
+    #else
+    total_weight += simulation::device_particles[i].wgt_;
+    #endif
   }
+
+  #ifdef REDUCTION_WORKAROUND
   omp_target_memcpy( rval_host, rval, sizeof(double), 0, 0, omp_get_initial_device(), omp_get_default_device() );
   total_weight = rval_host[0];
-  // WORKAROUND END //////////////////////////
-  
-  simulation::time_event_init.stop();
+  #endif
 
   // Write total weight to global variable
   simulation::total_weight = total_weight;
@@ -199,7 +199,8 @@ void process_init_events(int n_particles)
   simulation::calculate_fuel_xs_queue.sync_size_device_to_host();
   simulation::calculate_nonfuel_xs_queue.sync_size_device_to_host();
   simulation::advance_particle_queue.sync_size_device_to_host();
-
+  
+  simulation::time_event_init.stop();
 }
 
 bool depletion_rx_check()
@@ -396,7 +397,7 @@ void process_death_events(int n_particles)
   double tracklength = 0.0;
   double leakage = 0.0;
   
-  // WORKAROUND BEGIN //////////////////////////
+  #ifdef REDUCTION_WORKAROUND
   static double *rval =      (double*)omp_target_alloc_device( sizeof(double)*4, omp_get_default_device() );
   static double *rval_host = (double*)omp_target_alloc_host(   sizeof(double)*4, omp_get_default_device() );
   rval_host[0] = 0.0;
@@ -404,22 +405,27 @@ void process_death_events(int n_particles)
   rval_host[2] = 0.0;
   rval_host[3] = 0.0;
   omp_target_memcpy( rval, rval_host, sizeof(double)*4, 0, 0, omp_get_default_device(), omp_get_initial_device() );
-  //#pragma omp target teams distribute parallel for reduction(+:absorption, collision, tracklength, leakage)
   #pragma omp target is_device_ptr(rval)
   #pragma omp teams distribute parallel for reduction(+:rval[:4])
-  // WORKAROUND END //////////////////////////
+  #else
+  #pragma omp target teams distribute parallel for reduction(+:absorption, collision, tracklength, leakage)
+  #endif
   for (int i = 0; i < n_particles; i++) {
     Particle& p = simulation::device_particles[i];
-    //p.accumulate_keff_tallies_local(absorption, collision, tracklength, leakage);
+    #ifdef REDUCTION_WORKAROUND
     p.accumulate_keff_tallies_local(rval[0], rval[1], rval[2], rval[3]);
+    #else
+    p.accumulate_keff_tallies_local(absorption, collision, tracklength, leakage);
+    #endif
   }
   // WORKAROUND BEGIN //////////////////////////
+  #ifdef REDUCTION_WORKAROUND
   omp_target_memcpy( rval_host, rval, sizeof(double)*4, 0, 0, omp_get_initial_device(), omp_get_default_device() );
   absorption =  rval_host[0];
   collision =   rval_host[1];
   tracklength = rval_host[2];
   leakage =     rval_host[3];
-  // WORKAROUND END //////////////////////////
+  #endif
 
   // Write local reduction results to global values
   global_tally_absorption  += absorption;
@@ -438,26 +444,24 @@ void process_revival_events()
 {
   simulation::e_revival++;
   simulation::ep_revival += simulation::revival_queue.size();
-  //simulation::time_event_revival.start();
+  simulation::time_event_revival.start();
 
   // Accumulator for particle weights from any sourced particles
   double extra_weight = 0;
   
-  // WORKAROUND BEGIN //////////////////////////
+  #ifdef REDUCTION_WORKAROUND
   static double *rval =      (double*)omp_target_alloc_device( sizeof(double), omp_get_default_device() );
   static double *rval_host = (double*)omp_target_alloc_host(   sizeof(double), omp_get_default_device() );
   rval_host[0] = 0.0;
   omp_target_memcpy( rval, rval_host, sizeof(double), 0, 0, omp_get_default_device(), omp_get_initial_device() );
-  
-  simulation::time_event_revival.start();
+  #endif
 
-  int sz = simulation::revival_queue.size();
-
-  // ORIGINAL ////////////////////////////////
-  //#pragma omp target teams distribute parallel for reduction(+:extra_weight)
+  #ifdef REDUCTION_WORKAROUND
   #pragma omp target is_device_ptr(rval)
   #pragma omp teams distribute parallel for reduction(+:rval[:1])
-  // WORKAROUND END //////////////////////////
+  #else
+  #pragma omp target teams distribute parallel for reduction(+:extra_weight)
+  #endif
   for (int i = 0; i < simulation::revival_queue.size(); i++) {
     int buffer_idx = simulation::revival_queue[i].idx;
     Particle& p = simulation::device_particles[buffer_idx];
@@ -480,11 +484,11 @@ void process_revival_events()
       if (source_offset_idx < simulation::work_per_rank) {
         // If a valid particle is sourced, initialize it and accumulate its weight
         initialize_history(p, source_offset_idx + 1);
-        // ORIGINAL ////////////////////////////////
-        //extra_weight += p.wgt_;
-        // WORKAROUND BEGIN //////////////////////////
+        #ifdef REDUCTION_WORKAROUND
         rval[0] += p.wgt_;
-        // WORKAROUND END //////////////////////////
+        #else
+        extra_weight += p.wgt_;
+        #endif
       }
     }
     // If particle has either been revived or a new particle has been sourced,
@@ -492,28 +496,12 @@ void process_revival_events()
     // dead, then it will not be queued anywhere.
     if (p.alive())
       dispatch_xs_event(buffer_idx);
-    /*
-    int buffer_idx = simulation::revival_queue[i].idx;
-    Particle& p = simulation::device_particles[buffer_idx];
-    p.event_death();
-    rval[0] += 1.0;
-    */
   }
-  simulation::time_event_revival.stop();
-  /*
-  #pragma omp target teams distribute parallel for
-  for (int i = 0; i < sz; i++) {
-  {
-    int buffer_idx = simulation::revival_queue[i].idx;
-    Particle& p = simulation::device_particles[buffer_idx];
-    p.event_death();
-  }
-  */
-  
-  // WORKAROUND BEGIN //////////////////////////
+
+  #ifdef REDUCTION_WORKAROUND
   omp_target_memcpy( rval_host, rval, sizeof(double), 0, 0, omp_get_initial_device(), omp_get_default_device() );
   extra_weight = rval_host[0];
-  // WORKAROUND END //////////////////////////
+  #endif
 
   simulation::revival_queue.resize(0);
   simulation::calculate_fuel_xs_queue.sync_size_device_to_host();
@@ -522,8 +510,8 @@ void process_revival_events()
 
   // Add any newly sourced particle weights to global variable
   simulation::total_weight += extra_weight;
-
-  //simulation::time_event_revival.stop();
+  
+  simulation::time_event_revival.stop();
 }
 
 } // namespace openmc

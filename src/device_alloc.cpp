@@ -217,6 +217,74 @@ void move_read_only_data_to_device()
   " # Fissionable Materials with >= 200 Nuclides: " << n_over_200 << std::endl <<
   " # Fissionable Materials with  < 200 Nuclides: " << n_under_200 << std::endl;
 
+  // Prepare serial materials
+  int max_nuclides = 0;
+  int max_elements = 0;
+  int max_thermal_tables = 0;
+  for (int i = 0; i < model::materials_size; i++) {
+    auto& mat = model::materials[i];
+    if (mat.nuclide_.size() > max_nuclides) {
+      max_nuclides = mat.nuclide_.size();
+    }
+    if (mat.thermal_tables_.size() > max_thermal_tables) {
+      max_thermal_tables = mat.thermal_tables_.size();
+    }
+    if (mat.element_.size() > max_elements) {
+      max_elements = mat.element_.size();
+    }
+  }
+  model::serial_materials_offset =                max_nuclides;
+  model::serial_materials_size =                  max_nuclides * model::materials_size;
+  model::serial_materials_element_offset =        max_elements;
+  model::serial_materials_element_size =          max_elements * model::materials_size;
+  model::serial_materials_thermal_tables_offset = max_thermal_tables;
+  model::serial_materials_thermal_tables_size =   max_thermal_tables * model::materials_size;
+  #pragma omp target update to(model::serial_materials_offset)
+  #pragma omp target update to(model::serial_materials_size)
+  #pragma omp target update to(model::serial_materials_element_size)
+  #pragma omp target update to(model::serial_materials_element_offset)
+  #pragma omp target update to(model::serial_materials_thermal_tables_size)
+  #pragma omp target update to(model::serial_materials_thermal_tables_offset)
+
+  model::serial_materials_nuclide = new int[model::serial_materials_size];
+  model::serial_materials_p0 = new int[model::serial_materials_size];
+  model::serial_materials_mat_nuclide_index = new int[model::serial_materials_size];
+  model::serial_materials_atom_density = new double[model::serial_materials_size];
+  if (model::serial_materials_element_size > 0) {
+    model::serial_materials_element = new int[model::serial_materials_element_size];
+  }
+  if (model::serial_materials_thermal_tables_size > 0) {
+    model::serial_materials_thermal_tables = new ThermalTable[model::serial_materials_thermal_tables_size];
+  }
+  std::cout << "Serializing partial materials and moving to device with total size: " << model::serial_materials_size * (5*sizeof(int) + sizeof(double) + sizeof(ThermalTable)) / 1.0e6 << " MB" << std::endl;
+  for (int i = 0; i < model::materials_size; i++) {
+    auto& mat = model::materials[i];
+    for (int j = 0; j < mat.nuclide_.size(); j++) {
+      mat.nuclide(j) = mat.nuclide_[j];
+      mat.mat_nuclide_index(j) = mat.mat_nuclide_index_[j];
+      mat.atom_density(j) = mat.atom_density_[j];
+    }
+    for (int j = 0; j < mat.p0_.size(); j++) {
+      mat.p0(j) = mat.p0_[j];
+    }
+    for (int j = 0; j < mat.element_.size(); j++) {
+      mat.element(j) = mat.element_[j];
+    }
+    for (int j = 0; j < mat.thermal_tables_.size(); j++) {
+      mat.thermal_tables(j) = mat.thermal_tables_[j];
+    }
+  }
+  #pragma omp target enter data map(to: model::serial_materials_nuclide[:model::serial_materials_size])
+  #pragma omp target enter data map(to: model::serial_materials_atom_density[:model::serial_materials_size])
+  #pragma omp target enter data map(to: model::serial_materials_p0[:model::serial_materials_size])
+  #pragma omp target enter data map(to: model::serial_materials_mat_nuclide_index[:model::serial_materials_size])
+  if (model::serial_materials_element_size > 0) {
+    #pragma omp target enter data map(to: model::serial_materials_element[:model::serial_materials_element_size])
+  }
+  if (model::serial_materials_thermal_tables_size > 0) {
+    #pragma omp target enter data map(to: model::serial_materials_thermal_tables[:model::serial_materials_thermal_tables_size])
+  }
+
   // Source Bank ///////////////////////////////////////////////////////
 
   simulation::device_source_bank = simulation::source_bank.data();

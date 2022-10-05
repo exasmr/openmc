@@ -33,9 +33,11 @@ void BremsstrahlungData::copy_to_device()
   device_pdf_ = pdf_.data();
   device_cdf_ = cdf_.data();
   device_yield_ = yield_.data();
-  #pragma omp target enter data map(to: device_pdf_[:pdf_.size()])
-  #pragma omp target enter data map(to: device_cdf_[:cdf_.size()])
-  #pragma omp target enter data map(to: device_yield_[:yield_.size()])
+  if (pdf_.size() > 0 ) {
+    #pragma omp target enter data map(to: device_pdf_[:pdf_.size()])
+    #pragma omp target enter data map(to: device_cdf_[:cdf_.size()])
+    #pragma omp target enter data map(to: device_yield_[:yield_.size()])
+  }
 }
 
 void BremsstrahlungData::release_from_device()

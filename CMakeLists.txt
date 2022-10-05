@@ -132,8 +132,8 @@ if(coverage)
   list(APPEND ldflags --coverage)
 endif()
 if(sycl_sort)
-  list(APPEND cxxflags -fsycl -D_GLIBCXX_USE_TBB_PAR_BACKEND=0)
-  list(APPEND ldflags -fsycl -D_GLIBCXX_USE_TBB_PAR_BACKEND=0)
+  list(APPEND cxxflags -fsycl -D_PSTL_PAR_BACKEND_SERIAL=1 -DPSTL_USE_PARALLEL_POLICIES=0 -D_GLIBCXX_USE_TBB_PAR_BACKEND=0)
+  list(APPEND ldflags -fsycl -D_PSTL_PAR_BACKEND_SERIAL=1 -DPSTL_USE_PARALLEL_POLICIES=0 -D_GLIBCXX_USE_TBB_PAR_BACKEND=0)
 endif()
 
 # Show flags being used
@@ -173,7 +173,7 @@ endif()
 
 if (NOT pugixml_FOUND)
   add_subdirectory(vendor/pugixml)
-  set_target_properties(pugixml PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+  set_target_properties(pugixml PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS OFF)
 endif()
 
 #===============================================================================
@@ -469,7 +469,7 @@ target_link_libraries(openmc libopenmc)
 set_target_properties(
   #openmc libopenmc faddeeva
     openmc libopenmc
-    PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+    PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS OFF)
 
 #===============================================================================
 # Python package
