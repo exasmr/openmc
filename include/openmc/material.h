@@ -37,18 +37,12 @@ extern std::unordered_map<int32_t, int32_t> material_map;
 #pragma omp declare target
 extern Material* materials;
 extern uint64_t materials_size;
-extern int     serial_materials_size;
-extern int     serial_materials_offset;
-extern int     serial_materials_element_size;
-extern int     serial_materials_element_offset;
-extern int     serial_materials_thermal_tables_size;
-extern int     serial_materials_thermal_tables_offset;
-extern int* serial_materials_nuclide;
-extern int* serial_materials_element;
-extern int* serial_materials_p0;
-extern int* serial_materials_mat_nuclide_index;
-extern ThermalTable* serial_materials_thermal_tables;
-extern double* serial_materials_atom_density;
+extern vector2d<int> materials_nuclide;
+extern vector2d<int> materials_element;
+extern vector2d<double> materials_atom_density;
+extern vector2d<int> materials_p0;
+extern vector2d<int> materials_mat_nuclide_index;
+extern vector2d<ThermalTable> materials_thermal_tables;
 #pragma omp end declare target
 
 } // namespace model
@@ -167,19 +161,12 @@ public:
   void release_from_device();
 
   #pragma omp declare target
-  int& nuclide(int i) {                 return model::serial_materials_nuclide[          index_ * model::serial_materials_offset + i]; }
-  int& element(int i) {                 return model::serial_materials_element[          index_ * model::serial_materials_element_offset + i]; }
-  double& atom_density(int i) {         return model::serial_materials_atom_density[     index_ * model::serial_materials_offset + i]; }
-  int& p0(int i) {                      return model::serial_materials_p0[               index_ * model::serial_materials_offset + i]; }
-  int& mat_nuclide_index(int i) {       return model::serial_materials_mat_nuclide_index[index_ * model::serial_materials_offset + i]; }
-  ThermalTable& thermal_tables(int i) { return model::serial_materials_thermal_tables[   index_ * model::serial_materials_thermal_tables_offset + i]; }
-  
-  int& nuclide(int i) const {                 return model::serial_materials_nuclide[          index_ * model::serial_materials_offset + i]; }
-  int& element(int i) const {                 return model::serial_materials_element[          index_ * model::serial_materials_element_offset + i]; }
-  double& atom_density(int i) const {         return model::serial_materials_atom_density[     index_ * model::serial_materials_offset + i]; }
-  int& p0(int i) const {                      return model::serial_materials_p0[               index_ * model::serial_materials_offset + i]; }
-  int& mat_nuclide_index(int i)const  {       return model::serial_materials_mat_nuclide_index[index_ * model::serial_materials_offset + i]; }
-  ThermalTable& thermal_tables(int i) const { return model::serial_materials_thermal_tables[   index_ * model::serial_materials_thermal_tables_offset + i]; }
+  int& nuclide(int i) const {                 return model::materials_nuclide(          index_, i);}
+  int& element(int i) const {                 return model::materials_element(          index_, i);}
+  double& atom_density(int i) const {         return model::materials_atom_density(     index_, i);}
+  int& p0(int i) const {                      return model::materials_p0(               index_, i);}
+  int& mat_nuclide_index(int i)const  {       return model::materials_mat_nuclide_index(index_, i);}
+  ThermalTable& thermal_tables(int i) const { return model::materials_thermal_tables(   index_, i);}
   #pragma omp end declare target
 
   uint64_t calculate_footprint()

@@ -213,13 +213,14 @@ void process_calculate_xs_events_nonfuel()
 {
   simulation::e_nonfuel++;
   simulation::ep_nonfuel += simulation::calculate_nonfuel_xs_queue.size();
-  simulation::time_event_calculate_xs.start();
-  simulation::time_event_calculate_xs_nonfuel.start();
 
   bool need_depletion_rx = depletion_rx_check();
 
   int offset = simulation::advance_particle_queue.size();;
   sort_queue(simulation::calculate_nonfuel_xs_queue);
+  
+  simulation::time_event_calculate_xs.start();
+  simulation::time_event_calculate_xs_nonfuel.start();
 
   if (need_depletion_rx) {
     #pragma omp target teams distribute parallel for

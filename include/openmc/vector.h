@@ -6,6 +6,7 @@
 #include <initializer_list>
 #include <iterator> // for reverse_iterator
 #include <utility> // for swap
+#include "xtensor/xtensor.hpp"
 
 #include <omp.h>
 
@@ -209,7 +210,7 @@ public:
 #pragma GCC diagnostic pop
   }
 
-private:
+protected:
   T* data_;
   size_type size_;
   size_type capacity_;
@@ -388,6 +389,73 @@ void vector<T>::assign(InputIt first, InputIt last)
   }
 }
 
+template<typename T>
+class vector2d : public vector<T> {
+public:
+  using size_type = std::size_t;
+  using const_iterator = const T*;
+  using reference = T&;
+  using const_reference = const T&;
+  using vector<T>::data_;
+  using vector<T>::size_;
+  // Constructors, destructors
+  vector2d() :  offset_(0), vector<T>() { }
+  vector2d(size_type n) : vector2d() { this->resize(n); }
+  vector2d(const_iterator begin, const_iterator end);
+  vector2d(std::initializer_list<T> init);
+  // TODO: If you have a global variable that is of type vector<T>, its
+  // destructor gets called which then requires ~T() to be available on device.
+  // Figure out a way around this
+  ~vector2d() {
+    if (data_) {
+      if (omp_is_initial_device()) {
+        this->clear();
+        std::free(data_);
+      } else {
+//#pragma omp target exit data map(delete: data_)
+      }
+    }
+  }
+  reference operator()(size_type outer_pos, size_type pos) { return data_[outer_pos * offset_ + pos]; }
+  const_reference operator()(size_type outer_pos, size_type pos) const { return data_[outer_pos * offset_ + pos]; }
+  void stretch(vector<T>& vect) {
+    if (vect.size() > offset_) {
+      offset_ = vect.size();
+    }
+  }
+  void stretch(xt::xtensor<T,1>& vect) {
+    if (vect.size() > offset_) {
+      offset_ = vect.size();
+    }
+  }
+  void resize2d(size_type count) {
+    count *= offset_;
+    this->reserve(count);
+    if (size_ < count) {
+      // Default insert new elements
+      for (size_type i = size_; i < count; ++i) {
+        new(data_ + i) T();
+      }
+    } else if (count < size_) {
+      // If new size is smaller, call destructor on erased elements
+      for (size_type i = count; i < size_; ++i) {
+        data_[i].~T();
+      }
+    }
+    size_ = count;
+  }
+  void copy_row(size_type i, vector<T>& vect) {
+    for (int j = 0; j < vect.size(); j++) {
+      data_[i * offset_ + j] = vect[j];
+    }
+  }
+  void copy_row(size_type i, xt::xtensor<T,1>& vect) {
+    for (int j = 0; j < vect.size(); j++) {
+      data_[i * offset_ + j] = vect[j];
+    }
+  }
+  size_type offset_;
+};
 
 } // namespace openmc
 
