@@ -165,33 +165,12 @@ void process_init_events(int n_particles)
 
   double total_weight = 0.0;
 
-  #ifdef REDUCTION_WORKAROUND
-  static double *rval =      (double*)omp_target_alloc_device( sizeof(double), omp_get_default_device() );
-  static double *rval_host = (double*)omp_target_alloc_host(   sizeof(double), omp_get_default_device() );
-  rval_host[0] = 0.0;
-  omp_target_memcpy( rval, rval_host, sizeof(double), 0, 0, omp_get_default_device(), omp_get_initial_device() );
-  #endif
-
   // The loop below can in theory be combined with the one above,
   // but is present here as a compiler bug workaround
-  #ifdef REDUCTION_WORKAROUND
-  #pragma omp target is_device_ptr(rval)
-  #pragma omp teams distribute parallel for reduction(+:rval[:1])
-  #else
   #pragma omp target teams distribute parallel for reduction(+:total_weight)
-  #endif
   for (int i = 0; i < n_particles; i++) {
-    #ifdef REDUCTION_WORKAROUND
-    rval[0] += simulation::device_particles[i].wgt_;
-    #else
     total_weight += simulation::device_particles[i].wgt_;
-    #endif
   }
-
-  #ifdef REDUCTION_WORKAROUND
-  omp_target_memcpy( rval_host, rval, sizeof(double), 0, 0, omp_get_initial_device(), omp_get_default_device() );
-  total_weight = rval_host[0];
-  #endif
 
   // Write total weight to global variable
   simulation::total_weight = total_weight;
@@ -398,35 +377,11 @@ void process_death_events(int n_particles)
   double tracklength = 0.0;
   double leakage = 0.0;
   
-  #ifdef REDUCTION_WORKAROUND
-  static double *rval =      (double*)omp_target_alloc_device( sizeof(double)*4, omp_get_default_device() );
-  static double *rval_host = (double*)omp_target_alloc_host(   sizeof(double)*4, omp_get_default_device() );
-  rval_host[0] = 0.0;
-  rval_host[1] = 0.0;
-  rval_host[2] = 0.0;
-  rval_host[3] = 0.0;
-  omp_target_memcpy( rval, rval_host, sizeof(double)*4, 0, 0, omp_get_default_device(), omp_get_initial_device() );
-  #pragma omp target is_device_ptr(rval)
-  #pragma omp teams distribute parallel for reduction(+:rval[:4])
-  #else
   #pragma omp target teams distribute parallel for reduction(+:absorption, collision, tracklength, leakage)
-  #endif
   for (int i = 0; i < n_particles; i++) {
     Particle& p = simulation::device_particles[i];
-    #ifdef REDUCTION_WORKAROUND
-    p.accumulate_keff_tallies_local(rval[0], rval[1], rval[2], rval[3]);
-    #else
     p.accumulate_keff_tallies_local(absorption, collision, tracklength, leakage);
-    #endif
   }
-  // WORKAROUND BEGIN //////////////////////////
-  #ifdef REDUCTION_WORKAROUND
-  omp_target_memcpy( rval_host, rval, sizeof(double)*4, 0, 0, omp_get_initial_device(), omp_get_default_device() );
-  absorption =  rval_host[0];
-  collision =   rval_host[1];
-  tracklength = rval_host[2];
-  leakage =     rval_host[3];
-  #endif
 
   // Write local reduction results to global values
   global_tally_absorption  += absorption;
@@ -450,19 +405,7 @@ void process_revival_events()
   // Accumulator for particle weights from any sourced particles
   double extra_weight = 0;
   
-  #ifdef REDUCTION_WORKAROUND
-  static double *rval =      (double*)omp_target_alloc_device( sizeof(double), omp_get_default_device() );
-  static double *rval_host = (double*)omp_target_alloc_host(   sizeof(double), omp_get_default_device() );
-  rval_host[0] = 0.0;
-  omp_target_memcpy( rval, rval_host, sizeof(double), 0, 0, omp_get_default_device(), omp_get_initial_device() );
-  #endif
-
-  #ifdef REDUCTION_WORKAROUND
-  #pragma omp target is_device_ptr(rval)
-  #pragma omp teams distribute parallel for reduction(+:rval[:1])
-  #else
   #pragma omp target teams distribute parallel for reduction(+:extra_weight)
-  #endif
   for (int i = 0; i < simulation::revival_queue.size(); i++) {
     int buffer_idx = simulation::revival_queue[i].idx;
     Particle& p = simulation::device_particles[buffer_idx];
@@ -485,11 +428,7 @@ void process_revival_events()
       if (source_offset_idx < simulation::work_per_rank) {
         // If a valid particle is sourced, initialize it and accumulate its weight
         initialize_history(p, source_offset_idx + 1);
-        #ifdef REDUCTION_WORKAROUND
-        rval[0] += p.wgt_;
-        #else
         extra_weight += p.wgt_;
-        #endif
       }
     }
     // If particle has either been revived or a new particle has been sourced,
@@ -498,11 +437,6 @@ void process_revival_events()
     if (p.alive())
       dispatch_xs_event(buffer_idx);
   }
-
-  #ifdef REDUCTION_WORKAROUND
-  omp_target_memcpy( rval_host, rval, sizeof(double), 0, 0, omp_get_initial_device(), omp_get_default_device() );
-  extra_weight = rval_host[0];
-  #endif
 
   simulation::revival_queue.resize(0);
   simulation::calculate_fuel_xs_queue.sync_size_device_to_host();
