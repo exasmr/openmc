@@ -247,6 +247,14 @@ void move_read_only_data_to_device()
     model::materials_mat_nuclide_index.copy_row(i, mat.mat_nuclide_index_);
     model::materials_thermal_tables.copy_row(i, mat.thermal_tables_);
   }
+  
+  // Update top level global fields to device (e.g., size_, capacity_, etc)
+  #pragma omp target update to(model::materials_nuclide)
+  #pragma omp target update to(model::materials_element)
+  #pragma omp target update to(model::materials_atom_density)
+  #pragma omp target update to(model::materials_p0)
+  #pragma omp target update to(model::materials_mat_nuclide_index)
+  #pragma omp target update to(model::materials_thermal_tables)
 
   // Map serialized material vectors to device
   model::materials_nuclide.copy_to_device();
@@ -255,6 +263,7 @@ void move_read_only_data_to_device()
   model::materials_p0.copy_to_device();
   model::materials_mat_nuclide_index.copy_to_device();
   model::materials_thermal_tables.copy_to_device();
+
 
   /*
   // Prepare serial materials

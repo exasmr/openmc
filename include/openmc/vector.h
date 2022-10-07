@@ -397,6 +397,7 @@ public:
   using reference = T&;
   using const_reference = const T&;
   using vector<T>::data_;
+  using vector<T>::capacity_;
   using vector<T>::size_;
   // Constructors, destructors
   vector2d() :  offset_(0), vector<T>() { }
@@ -406,16 +407,18 @@ public:
   // TODO: If you have a global variable that is of type vector<T>, its
   // destructor gets called which then requires ~T() to be available on device.
   // Figure out a way around this
+  /*
   ~vector2d() {
     if (data_) {
       if (omp_is_initial_device()) {
-        this->clear();
-        std::free(data_);
+        //this->clear();
+        //std::free(data_);
       } else {
 //#pragma omp target exit data map(delete: data_)
       }
     }
   }
+  */
   reference operator()(size_type outer_pos, size_type pos) { return data_[outer_pos * offset_ + pos]; }
   const_reference operator()(size_type outer_pos, size_type pos) const { return data_[outer_pos * offset_ + pos]; }
   void stretch(vector<T>& vect) {
@@ -453,6 +456,9 @@ public:
     for (int j = 0; j < vect.size(); j++) {
       data_[i * offset_ + j] = vect[j];
     }
+  }
+  void print_stats() {
+    std::cout << "(size, capacity, offset, pointer) = (" << size_ << ", " << capacity_ << ", " << offset_ << ", " << data_ << ")" << std::endl;
   }
   size_type offset_;
 };
