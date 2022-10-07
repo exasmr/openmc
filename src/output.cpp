@@ -375,7 +375,6 @@ void print_generation()
     fmt::print("   {:8.5f} +/-{:8.5f}", simulation::keff, simulation::keff_std);
   }
 
-  fmt::print("   {:d}  {:d}", simulation::n_events, simulation::n_work);
   std::cout << std::endl;
 }
 
@@ -425,18 +424,23 @@ void print_runtime()
   // display header block
   header("Runtime Information", 6);
   if (settings::verbosity < 6) return;
-  std::cout << "Fuel XS events:    " << simulation::e_fuel      << " " << simulation::ep_fuel << std::endl;
-  std::cout << "Nonfuel XS events: " << simulation::e_nonfuel   << " " << simulation::ep_nonfuel << std::endl; 
-  std::cout << "Advance events:    " << simulation::e_advance   << " " << simulation::ep_advance << std::endl; 
-  std::cout << "Surface events:    " << simulation::e_surface   << " " << simulation::ep_surface << std::endl; 
-  std::cout << "Collision events:  " << simulation::e_collision << " " << simulation::ep_collision << std::endl; 
-  std::cout << "Revival events:    " << simulation::e_revival   << " " << simulation::ep_revival << std::endl; 
+
 
   fmt::print(" Simulation Algorithm              = ");
-  if (settings::event_based )
+  if (settings::event_based) {
     fmt::print("Event-Based\n");
-  else
+    int64_t events = simulation::e_fuel + simulation::e_nonfuel + simulation::e_advance + simulation::e_surface + simulation::e_collision + simulation::e_revival;
+    int64_t particle_events = simulation::ep_fuel + simulation::ep_nonfuel + simulation::ep_advance + simulation::ep_surface + simulation::ep_collision + simulation::ep_revival;
+    std::cout << " Total Kernel Calls, Par-Events    = " << std::setw(5) << std::left << events << ", " << particle_events << " (on MPI rank 0)" << std::endl;
+    std::cout << "   Fuel XS                         = " << std::setw(5) << std::left << simulation::e_fuel << ", " << simulation::ep_fuel << std::endl;
+    std::cout << "   Nonfuel XS                      = " << std::setw(5) << std::left << simulation::e_nonfuel << ", " << simulation::ep_nonfuel << std::endl;
+    std::cout << "   Advance                         = " << std::setw(5) << std::left << simulation::e_advance << ", " << simulation::ep_advance << std::endl;
+    std::cout << "   Surface                         = " << std::setw(5) << std::left << simulation::e_surface << ", " << simulation::ep_surface << std::endl;
+    std::cout << "   Collision                       = " << std::setw(5) << std::left << simulation::e_collision << ", " << simulation::ep_collision << std::endl;
+    std::cout << "   Revival                         = " << std::setw(5) << std::left << simulation::e_revival << ", " << simulation::ep_revival << std::endl;
+  } else {
     fmt::print("History-Based\n");
+  }
 
   fmt::print(" Simulation Execution Location     = ");
   if (was_device_used())

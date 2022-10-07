@@ -138,6 +138,8 @@ public:
     size_ = count;
   }
 
+  size_type footprint() { return size_ * sizeof(T); }
+
   void reserve(size_type n) {
     if (n <= capacity_) return;
 
@@ -400,39 +402,52 @@ public:
   using vector<T>::capacity_;
   using vector<T>::size_;
   // Constructors, destructors
-  vector2d() :  offset_(0), vector<T>() { }
+  vector2d() :  stride_(0), vector<T>() { }
   vector2d(size_type n) : vector2d() { this->resize(n); }
   vector2d(const_iterator begin, const_iterator end);
   vector2d(std::initializer_list<T> init);
-  // TODO: If you have a global variable that is of type vector<T>, its
-  // destructor gets called which then requires ~T() to be available on device.
+  // TODO: If you have a global variable its
+  // destructor gets called on both the host and device,
+  // which requires ~() to be available on device.
   // Figure out a way around this
   /*
   ~vector2d() {
     if (data_) {
       if (omp_is_initial_device()) {
-        //this->clear();
-        //std::free(data_);
+        this->clear();
+        std::free(data_);
       } else {
-//#pragma omp target exit data map(delete: data_)
+        #pragma omp target exit data map(delete: data_)
       }
     }
   }
   */
-  reference operator()(size_type outer_pos, size_type pos) { return data_[outer_pos * offset_ + pos]; }
-  const_reference operator()(size_type outer_pos, size_type pos) const { return data_[outer_pos * offset_ + pos]; }
+
+  // 2D Element access
+  reference operator()(size_type outer_pos, size_type pos) { return data_[outer_pos * stride_ + pos]; }
+  const_reference operator()(size_type outer_pos, size_type pos) const { return data_[outer_pos * stride_ + pos]; }
+
+  // Stretching functions.
+  // The idea here is that you should call these on every row you want to add to the
+  // matrix first to determine which is longest, which is kept track of in the stride_
+  // field. We could also add a direct way of setting stride_
+  // down the line, but these stretching functions are useful for finding the material
+  // with the most nuclides, thermal tables, etc, without having to repeat the logic
+  // multiple times elsewhere.
   void stretch(vector<T>& vect) {
-    if (vect.size() > offset_) {
-      offset_ = vect.size();
+    if (vect.size() > stride_) {
+      stride_ = vect.size();
     }
   }
   void stretch(xt::xtensor<T,1>& vect) {
-    if (vect.size() > offset_) {
-      offset_ = vect.size();
+    if (vect.size() > stride_) {
+      stride_ = vect.size();
     }
   }
+
+  // Allocates a 2d matrix of dimension count x stride_
   void resize2d(size_type count) {
-    count *= offset_;
+    count *= stride_;
     this->reserve(count);
     if (size_ < count) {
       // Default insert new elements
@@ -447,20 +462,21 @@ public:
     }
     size_ = count;
   }
-  void copy_row(size_type i, vector<T>& vect) {
-    for (int j = 0; j < vect.size(); j++) {
-      data_[i * offset_ + j] = vect[j];
+
+  // Copies a row of data into the 2D matrix at row i
+  void copy_row(size_type i, vector<T>& row) {
+    for (int j = 0; j < row.size(); j++) {
+      data_[i * stride_ + j] = row[j];
     }
   }
-  void copy_row(size_type i, xt::xtensor<T,1>& vect) {
-    for (int j = 0; j < vect.size(); j++) {
-      data_[i * offset_ + j] = vect[j];
+  void copy_row(size_type i, xt::xtensor<T,1>& row) {
+    for (int j = 0; j < row.size(); j++) {
+      data_[i * stride_ + j] = row[j];
     }
   }
-  void print_stats() {
-    std::cout << "(size, capacity, offset, pointer) = (" << size_ << ", " << capacity_ << ", " << offset_ << ", " << data_ << ")" << std::endl;
-  }
-  size_type offset_;
+
+  protected:
+  size_type stride_;
 };
 
 } // namespace openmc

@@ -55,16 +55,6 @@ class Material
 {
 public:
   //----------------------------------------------------------------------------
-  // Types
-  /*
-  struct ThermalTable {
-    int index_table; //!< Index of table in data::thermal_scatt
-    int index_nuclide; //!< Index in nuclide_
-    double fraction; //!< How often to use table
-  };
-  */
-
-  //----------------------------------------------------------------------------
   // Constructors, destructors, factory functions
   Material() {};
   explicit Material(pugi::xml_node material_node);
@@ -169,18 +159,6 @@ public:
   ThermalTable& thermal_tables(int i) const { return model::materials_thermal_tables(   index_, i);}
   #pragma omp end declare target
 
-  uint64_t calculate_footprint()
-  {
-    uint64_t n = 0;
-    //n += nuclide_.size() * sizeof(int);
-    //n += element_.size() * sizeof(int);
-    //n += mat_nuclide_index_.size() * sizeof(int);
-    //n += p0_.size() * sizeof(int);
-    //n += atom_density_.size() * sizeof(double);
-    //n += thermal_tables_.size() * sizeof(ThermalTable);
-    return n;
-  }
-
   //----------------------------------------------------------------------------
   // Data
   int32_t id_ {C_NONE}; //!< Unique ID
@@ -188,7 +166,6 @@ public:
   vector<int> nuclide_; //!< Indices in nuclides vector
   vector<int> element_; //!< Indices in elements vector
   xt::xtensor<double, 1> atom_density_; //!< Nuclide atom density in [atom/b-cm]
-  double* device_atom_density_;
   double density_; //!< Total atom density in [atom/b-cm]
   double density_gpcc_; //!< Total atom density in [g/cm^3]
   double volume_ {-1.0}; //!< Volume in [cm^3]
@@ -229,7 +206,6 @@ private:
 
   //----------------------------------------------------------------------------
   // Private data members
-  //gsl::index index_;
 
   //! \brief Default temperature for cells containing this material.
   //!

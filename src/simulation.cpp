@@ -96,7 +96,9 @@ int openmc_simulation_init()
     init_event_queues(event_buffer_length);
 
     // Allocate particle buffer on device
-    std::cout << "Allocating device particle buffer of size: " << simulation::particles.size() * sizeof(Particle) /1.0e6 << " MB. Particle size = " << sizeof(Particle) / 1.0e3 << " KB" << std::endl;
+    if (mpi::master) {
+      std::cout << " Moving particle buffer to device of size: " << simulation::particles.size() * sizeof(Particle) /1.0e6 << " MB. Particle size = " << sizeof(Particle) / 1.0e3 << " KB" << std::endl;
+    }
     simulation::device_particles = simulation::particles.data();
     #pragma omp target enter data map(alloc: simulation::device_particles[:event_buffer_length])
   }
@@ -144,17 +146,6 @@ int openmc_simulation_init()
       if (settings::verbosity >= 7) print_columns();
     }
   }
-
-  // Count distribcell
-  uint64_t n_distribcells = 0;
-  for( int i = 0; i < model::cells.size(); i++ )
-  {
-    Cell& cell = model::cells[i];
-    if(cell.type_ != Fill::MATERIAL)
-      continue;
-    n_distribcells += cell.n_instances_;
-  }
-  std::cout << "Number of distribcells = " << n_distribcells << std::endl;
 
   #ifdef OPENMC_MPI
   MPI_Barrier( mpi::intracomm );

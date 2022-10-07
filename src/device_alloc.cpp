@@ -99,13 +99,17 @@ void move_read_only_data_to_device()
 
   // Surfaces ////////////////////////////////////////////////////////
 
-  std::cout << "Moving " << model::surfaces.size() << " surfaces to device..." << std::endl;
+  if (mpi::master) {
+    std::cout << " Moving " << model::surfaces.size() << " surfaces to device..." << std::endl;
+  }
   model::device_surfaces = model::surfaces.data();
   #pragma omp target enter data map(to: model::device_surfaces[:model::surfaces.size()])
 
   // Universes ///////////////////////////////////////////////////////
 
-  std::cout << "Moving " << model::universes.size() << " universes to device..." << std::endl;
+  if (mpi::master) {
+    std::cout << " Moving " << model::universes.size() << " universes to device..." << std::endl;
+  }
   model::device_universes = model::universes.data();
   #pragma omp target enter data map(to: model::device_universes[:model::universes.size()])
   for( auto& universe : model::universes ) {
@@ -114,7 +118,9 @@ void move_read_only_data_to_device()
 
   // Cells //////////////////////////////////////////////////////////
 
-  std::cout << "Moving " << model::cells.size() << " cells to device..." << std::endl;
+  if (mpi::master) {
+    std::cout << " Moving " << model::cells.size() << " cells to device..." << std::endl;
+  }
   model::device_cells = model::cells.data();
   #pragma omp target enter data map(to: model::device_cells[0:model::cells.size()])
   for( auto& cell : model::cells ) {
@@ -123,7 +129,9 @@ void move_read_only_data_to_device()
 
   // Lattices /////////////////////////////////////////////////////////
 
-  std::cout << "Moving " << model::lattices.size() << " lattices to device..." << std::endl;
+  if (mpi::master) {
+    std::cout << " Moving " << model::lattices.size() << " lattices to device..." << std::endl;
+  }
   model::device_lattices = model::lattices.data();
   #pragma omp target enter data map(to: model::device_lattices[:model::lattices.size()])
   for( auto& lattice : model::lattices ) {
@@ -153,7 +161,9 @@ void move_read_only_data_to_device()
     nuc.flatten_wmp_data();
   }
 
-  std::cout << "Moving " << data::nuclides_size << " nuclides to device..." << std::endl;
+  if (mpi::master) {
+    std::cout << " Moving " << data::nuclides_size << " nuclides to device..." << std::endl;
+  }
   #pragma omp target enter data map(to: data::nuclides[:data::nuclides_size])
   for (int i = 0; i < data::nuclides_size; ++i) {
     auto& nuc = data::nuclides[i];
@@ -171,11 +181,13 @@ void move_read_only_data_to_device()
   #pragma omp target update to(data::compton_profile_pz_size)
   #pragma omp target enter data map(to: data::compton_profile_pz[:data::compton_profile_pz_size])
 
+  if (mpi::master) {
+    std::cout << " Moving " << data::elements_size << " elements to device..." << std::endl;
+  }
   #pragma omp target update to(data::elements_size)
   #pragma omp target enter data map(to: data::elements[:data::elements_size])
   for (int i = 0; i < data::elements_size; ++i) {
     auto& elm = data::elements[i];
-    std::cout << "Moving " << elm.name_ << " data to device..." << std::endl;
     elm.copy_to_device();
   }
   data::device_ttb_e_grid = data::ttb_e_grid.data();
@@ -184,39 +196,32 @@ void move_read_only_data_to_device()
 
   // Materials /////////////////////////////////////////////////////////
 
-  int n_bytes = model::materials_size * sizeof(Material);
-  for (int i = 0; i < model::materials_size; i++) {
-    n_bytes += model::materials[i].calculate_footprint();
-  }
-
-  std::cout << "Moving " << model::materials_size << " materials to device of total size: " << n_bytes * 1e-6 << " MB" << std::endl;
-  int min = 99999;
-  int max = 0;
-  int n_over_200 = 0;
-  int n_under_200 = 0;
-  #pragma omp target update to(model::materials_size)
-  #pragma omp target enter data map(to: model::materials[:model::materials_size])
-  for (int i = 0; i < model::materials_size; i++) {
-    model::materials[i].copy_to_device();
-    if(model::materials[i].fissionable())
-    {
-      int num_nucs = model::materials[i].nuclide_.size();
-      if( num_nucs < min )
-        min = num_nucs;
-      if( num_nucs > max )
-       max = num_nucs;
-     if( num_nucs >= 200 )
-       n_over_200++;
-     else
-       n_under_200++;
+  // Analyze fissionable materials
+  if (mpi::master) {
+    int min = 99999;
+    int max = 0;
+    int n_over_200 = 0;
+    int n_under_200 = 0;
+    for (int i = 0; i < model::materials_size; i++) {
+      if(model::materials[i].fissionable())
+      {
+        int num_nucs = model::materials[i].nuclide_.size();
+        if( num_nucs < min )
+          min = num_nucs;
+        if( num_nucs > max )
+         max = num_nucs;
+       if( num_nucs >= 200 )
+         n_over_200++;
+       else
+         n_under_200++;
+      }
     }
+    std::cout << " Fissionable Material Statistics:" << std::endl <<
+    "   Max Nuclide Count: " << max << std::endl <<
+    "   Min Nuclide Count: " << min << std::endl <<
+    "   # Fissionable Materials with >= 200 Nuclides: " << n_over_200 << std::endl <<
+    "   # Fissionable Materials with  < 200 Nuclides: " << n_under_200 << std::endl;
   }
-  std::cout << "Fissionable Material Statistics:" << std::endl <<
-  " Max Nuclide Count: " << max << std::endl <<
-  " Min Nuclide Count: " << min << std::endl <<
-  " # Fissionable Materials with >= 200 Nuclides: " << n_over_200 << std::endl <<
-  " # Fissionable Materials with  < 200 Nuclides: " << n_under_200 << std::endl;
-
 
   // Determine size of inner dimension for serialized material vectors
   for (int i = 0; i < model::materials_size; i++) {
@@ -248,13 +253,34 @@ void move_read_only_data_to_device()
     model::materials_thermal_tables.copy_row(i, mat.thermal_tables_);
   }
   
-  // Update top level global fields to device (e.g., size_, capacity_, etc)
+  // Calculate and report memory usage (excluding any ttb_ data)
+  int n_bytes = model::materials_size * sizeof(Material);
+  n_bytes += model::materials_nuclide.footprint();
+  n_bytes += model::materials_element.footprint();
+  n_bytes += model::materials_atom_density.footprint();
+  n_bytes += model::materials_p0.footprint();
+  n_bytes += model::materials_mat_nuclide_index.footprint();
+  n_bytes += model::materials_thermal_tables.footprint();
+  if (mpi::master) {
+    std::cout << " Moving " << model::materials_size << " materials to device of total size: " << n_bytes * 1.0e-6 << " MB" << std::endl;
+  }
+  
+  // Update top level global scalars to device
+  #pragma omp target update to(model::materials_size)
   #pragma omp target update to(model::materials_nuclide)
   #pragma omp target update to(model::materials_element)
   #pragma omp target update to(model::materials_atom_density)
   #pragma omp target update to(model::materials_p0)
   #pragma omp target update to(model::materials_mat_nuclide_index)
   #pragma omp target update to(model::materials_thermal_tables)
+
+  // Map top level material array to device
+  #pragma omp target enter data map(to: model::materials[:model::materials_size])
+
+  // Map ttb_ field arrays, if needed
+  for (int i = 0; i < model::materials_size; i++) {
+    model::materials[i].copy_to_device();
+  }
 
   // Map serialized material vectors to device
   model::materials_nuclide.copy_to_device();
@@ -263,77 +289,6 @@ void move_read_only_data_to_device()
   model::materials_p0.copy_to_device();
   model::materials_mat_nuclide_index.copy_to_device();
   model::materials_thermal_tables.copy_to_device();
-
-
-  /*
-  // Prepare serial materials
-  int max_nuclides = 0;
-  int max_elements = 0;
-  int max_thermal_tables = 0;
-  for (int i = 0; i < model::materials_size; i++) {
-    auto& mat = model::materials[i];
-    if (mat.nuclide_.size() > max_nuclides) {
-      max_nuclides = mat.nuclide_.size();
-    }
-    if (mat.thermal_tables_.size() > max_thermal_tables) {
-      max_thermal_tables = mat.thermal_tables_.size();
-    }
-    if (mat.element_.size() > max_elements) {
-      max_elements = mat.element_.size();
-    }
-  }
-  model::serial_materials_offset =                max_nuclides;
-  model::serial_materials_size =                  max_nuclides * model::materials_size;
-  model::serial_materials_element_offset =        max_elements;
-  model::serial_materials_element_size =          max_elements * model::materials_size;
-  model::serial_materials_thermal_tables_offset = max_thermal_tables;
-  model::serial_materials_thermal_tables_size =   max_thermal_tables * model::materials_size;
-  #pragma omp target update to(model::serial_materials_offset)
-  #pragma omp target update to(model::serial_materials_size)
-  #pragma omp target update to(model::serial_materials_element_size)
-  #pragma omp target update to(model::serial_materials_element_offset)
-  #pragma omp target update to(model::serial_materials_thermal_tables_size)
-  #pragma omp target update to(model::serial_materials_thermal_tables_offset)
-
-  model::serial_materials_nuclide = new int[model::serial_materials_size];
-  model::serial_materials_p0 = new int[model::serial_materials_size];
-  model::serial_materials_mat_nuclide_index = new int[model::serial_materials_size];
-  model::serial_materials_atom_density = new double[model::serial_materials_size];
-  if (model::serial_materials_element_size > 0) {
-    model::serial_materials_element = new int[model::serial_materials_element_size];
-  }
-  if (model::serial_materials_thermal_tables_size > 0) {
-    model::serial_materials_thermal_tables = new ThermalTable[model::serial_materials_thermal_tables_size];
-  }
-  std::cout << "Serializing partial materials and moving to device with total size: " << model::serial_materials_size * (5*sizeof(int) + sizeof(double) + sizeof(ThermalTable)) / 1.0e6 << " MB" << std::endl;
-  for (int i = 0; i < model::materials_size; i++) {
-    auto& mat = model::materials[i];
-    for (int j = 0; j < mat.nuclide_.size(); j++) {
-      mat.nuclide(j) = mat.nuclide_[j];
-      mat.mat_nuclide_index(j) = mat.mat_nuclide_index_[j];
-      mat.atom_density(j) = mat.atom_density_[j];
-    }
-    for (int j = 0; j < mat.p0_.size(); j++) {
-      mat.p0(j) = mat.p0_[j];
-    }
-    for (int j = 0; j < mat.element_.size(); j++) {
-      mat.element(j) = mat.element_[j];
-    }
-    for (int j = 0; j < mat.thermal_tables_.size(); j++) {
-      mat.thermal_tables(j) = mat.thermal_tables_[j];
-    }
-  }
-  #pragma omp target enter data map(to: model::serial_materials_nuclide[:model::serial_materials_size])
-  #pragma omp target enter data map(to: model::serial_materials_atom_density[:model::serial_materials_size])
-  #pragma omp target enter data map(to: model::serial_materials_p0[:model::serial_materials_size])
-  #pragma omp target enter data map(to: model::serial_materials_mat_nuclide_index[:model::serial_materials_size])
-  if (model::serial_materials_element_size > 0) {
-    #pragma omp target enter data map(to: model::serial_materials_element[:model::serial_materials_element_size])
-  }
-  if (model::serial_materials_thermal_tables_size > 0) {
-    #pragma omp target enter data map(to: model::serial_materials_thermal_tables[:model::serial_materials_thermal_tables_size])
-  }
-  */
 
   // Source Bank ///////////////////////////////////////////////////////
 
@@ -353,7 +308,9 @@ void move_read_only_data_to_device()
 
   // Filters ////////////////////////////////////////////////////////////////
 
-  std::cout << "Moving " << model::n_tally_filters << " tally filters to device..." << std::endl;
+  if (mpi::master) {
+    std::cout << " Moving " << model::n_tally_filters << " tally filters to device..." << std::endl;
+  }
   #pragma omp target update to(model::n_tally_filters)
   #pragma omp target enter data map(to: model::tally_filters[:model::n_tally_filters])
   for (int i = 0; i < model::n_tally_filters; i++) {
@@ -362,7 +319,9 @@ void move_read_only_data_to_device()
 
   // Meshes ////////////////////////////////////////////////////////////////
 
-  std::cout << "Moving " << model::meshes_size << " meshes to device..." << std::endl;
+  if (mpi::master) {
+    std::cout << " Moving " << model::meshes_size << " meshes to device..." << std::endl;
+  }
   #pragma omp target update to(model::meshes_size)
   #pragma omp target enter data map(to: model::meshes[:model::meshes_size])
   for (int i = 0; i < model::meshes_size; i++) {
@@ -371,12 +330,16 @@ void move_read_only_data_to_device()
 
   // Tallies ///////////////////////////////////////////////////
 
-  std::cout << "Moving " << model::tallies_size << " tallies to device..." << std::endl;
+  if (mpi::master) {
+    std::cout << " Moving " << model::tallies_size << " tallies to device..." << std::endl;
+  }
   #pragma omp target update to(model::tallies_size)
   #pragma omp target enter data map(to: model::tallies[:model::tallies_size])
   for (int i = 0; i < model::tallies_size; ++i) {
     auto& tally = model::tallies[i];
-    std::cout << "Moving " << tally.name_ << " data to device..." << std::endl;
+    if (mpi::master) {
+      std::cout << "   Moving tally " << tally.id_ << " containing " << tally.n_filter_bins_ << " bins with " << tally.n_scores_ << " scores each. Total size: " << (double) tally.results_size_ * sizeof(double) / 1.0e6 << " MB" << std::endl;
+    }
     tally.copy_to_device();
   }
 
@@ -388,7 +351,9 @@ void move_read_only_data_to_device()
 
 void release_data_from_device()
 {
-  std::cout << "Releasing data from device..." << std::endl;
+  if (mpi::master) {
+    std::cout << " Releasing data from device..." << std::endl;
+  }
   for (int i = 0; i < data::nuclides_size; ++i) {
     data::nuclides[i].release_from_device();
   }
@@ -400,6 +365,21 @@ void release_data_from_device()
   for (int i = 0; i < model::tallies_size; ++i) {
     model::tallies[i].release_from_device();
   }
+  
+  // Release material ttb_ field arrays, if needed
+  for (int i = 0; i < model::materials_size; i++) {
+    model::materials[i].release_from_device();
+  }
+  #pragma omp target exit data map(release: model::materials[:model::materials_size])
+  
+  // Release serialized materials 
+  model::materials_nuclide.release_device();
+  model::materials_element.release_device();
+  model::materials_atom_density.release_device();
+  model::materials_p0.release_device();
+  model::materials_mat_nuclide_index.release_device();
+  model::materials_thermal_tables.release_device();
+  
 }
 
 
