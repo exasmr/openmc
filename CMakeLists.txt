@@ -136,6 +136,10 @@ if(sycl_sort)
   list(APPEND cxxflags -fsycl -D_PSTL_PAR_BACKEND_SERIAL=1 -DPSTL_USE_PARALLEL_POLICIES=0 -D_GLIBCXX_USE_TBB_PAR_BACKEND=0)
   list(APPEND ldflags -fsycl -D_PSTL_PAR_BACKEND_SERIAL=1 -DPSTL_USE_PARALLEL_POLICIES=0 -D_GLIBCXX_USE_TBB_PAR_BACKEND=0)
 endif()
+if(new_w)
+    # allows constexpr complex numeric literals. Potentially only works on gcc.
+  list(APPEND cxxflags -fext-numeric-literals)
+endif()
 
 # Show flags being used
 message(STATUS "OpenMC C++ flags: ${cxxflags}")
