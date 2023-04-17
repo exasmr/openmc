@@ -67,7 +67,6 @@ Filter::MeshFilter_text_label(int bin) const
 extern "C" int
 openmc_mesh_filter_get_mesh(int32_t index, int32_t* index_mesh)
 {
-  /*
   if (!index_mesh) {
     set_errmsg("Mesh index argument is a null pointer.");
     return OPENMC_E_INVALID_ARGUMENT;
@@ -77,21 +76,17 @@ openmc_mesh_filter_get_mesh(int32_t index, int32_t* index_mesh)
   if (int err = verify_filter(index)) return err;
 
   // Get a pointer to the filter and downcast.
-  const auto& filt_base = model::tally_filters[index].get();
-  auto* filt = dynamic_cast<MeshFilter*>(filt_base);
+  const auto& filt = model::tally_filters[index];
 
   // Check the filter type.
-  if (!filt) {
+  if (filt.get_type() != Filter::FilterType::MeshFilter) {
     set_errmsg("Tried to get mesh on a non-mesh filter.");
     return OPENMC_E_INVALID_TYPE;
   }
 
   // Output the mesh.
-  *index_mesh = filt->mesh();
-  */
-  return 0;
+  return filt.mesh();
 }
-/*
 
 extern "C" int
 openmc_mesh_filter_set_mesh(int32_t index, int32_t index_mesh)
@@ -100,25 +95,23 @@ openmc_mesh_filter_set_mesh(int32_t index, int32_t index_mesh)
   if (int err = verify_filter(index)) return err;
 
   // Get a pointer to the filter and downcast.
-  const auto& filt_base = model::tally_filters[index].get();
-  auto* filt = dynamic_cast<MeshFilter*>(filt_base);
+  auto& filt = model::tally_filters[index];
 
   // Check the filter type.
-  if (!filt) {
+  if (filt.get_type() != Filter::FilterType::MeshFilter) {
     set_errmsg("Tried to set mesh on a non-mesh filter.");
     return OPENMC_E_INVALID_TYPE;
   }
 
   // Check the mesh index.
-  if (index_mesh < 0 || index_mesh >= model::meshes.size()) {
+  if (index_mesh < 0 || index_mesh >= model::meshes_size) {
     set_errmsg("Index in 'meshes' array is out of bounds.");
     return OPENMC_E_OUT_OF_BOUNDS;
   }
 
   // Update the filter.
-  filt->set_mesh(index_mesh);
+  filt.set_mesh(index_mesh);
   return 0;
 }
-*/
 
 } // namespace openmc

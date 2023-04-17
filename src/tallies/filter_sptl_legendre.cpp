@@ -122,22 +122,20 @@ Filter::SpatialLegendreFilter_text_label(int bin) const
 // C-API functions
 //==============================================================================
 
-/*
-std::pair<int, SpatialLegendreFilter*>
-check_sptl_legendre_filter(int32_t index)
+std::pair<int, Filter&> check_sptl_legendre_filter(int32_t index)
 {
   // Make sure this is a valid index to an allocated filter.
   int err = verify_filter(index);
   if (err) {
-    return {err, nullptr};
+    // the first filter is just a dummy so we can return the reference
+    return {err, model::tally_filters[0]};
   }
 
   // Get a pointer to the filter and downcast.
-  const auto& filt_base = model::tally_filters[index].get();
-  auto* filt = dynamic_cast<SpatialLegendreFilter*>(filt_base);
+  auto& filt = model::tally_filters[index];
 
   // Check the filter type.
-  if (!filt) {
+  if (filt.get_type() != Filter::FilterType::SpatialLegendreFilter) {
     set_errmsg("Not a spatial Legendre filter.");
     err = OPENMC_E_INVALID_TYPE;
   }
@@ -154,7 +152,7 @@ openmc_spatial_legendre_filter_get_order(int32_t index, int* order)
   if (err) return err;
 
   // Output the order.
-  *order = filt->order();
+  *order = filt.order();
   return 0;
 }
 
@@ -169,9 +167,9 @@ openmc_spatial_legendre_filter_get_params(int32_t index, int* axis,
   if (err) return err;
 
   // Output the params.
-  *axis = static_cast<int>(filt->axis());
-  *min = filt->min();
-  *max = filt->max();
+  *axis = static_cast<int>(filt.axis());
+  *min = filt.min();
+  *max = filt.max();
   return 0;
 }
 
@@ -185,7 +183,7 @@ openmc_spatial_legendre_filter_set_order(int32_t index, int order)
   if (err) return err;
 
   // Update the filter.
-  filt->set_order(order);
+  filt.set_order(order);
   return 0;
 }
 
@@ -200,10 +198,11 @@ openmc_spatial_legendre_filter_set_params(int32_t index, const int* axis,
   if (err) return err;
 
   // Update the filter.
-  if (axis) filt->set_axis(static_cast<LegendreAxis>(*axis));
-  if (min && max) filt->set_minmax(*min, *max);
+  if (axis)
+    filt.set_axis(static_cast<LegendreAxis>(*axis));
+  if (min && max)
+    filt.set_minmax(*min, *max);
   return 0;
 }
-*/
 
 } // namespace openmc

@@ -52,8 +52,6 @@ Filter::LegendreFilter_text_label(int bin) const
 // C-API functions
 //==============================================================================
 
-/*
-
 extern "C" int
 openmc_legendre_filter_get_order(int32_t index, int* order)
 {
@@ -61,17 +59,16 @@ openmc_legendre_filter_get_order(int32_t index, int* order)
   if (int err = verify_filter(index)) return err;
 
   // Get a pointer to the filter and downcast.
-  const auto& filt_base = model::tally_filters[index].get();
-  auto* filt = dynamic_cast<LegendreFilter*>(filt_base);
+  const auto& filt = model::tally_filters[index];
 
   // Check the filter type.
-  if (!filt) {
+  if (filt.get_type() != Filter::FilterType::LegendreFilter) {
     set_errmsg("Not a legendre filter.");
     return OPENMC_E_INVALID_TYPE;
   }
 
   // Output the order.
-  *order = filt->order();
+  *order = filt.order();
   return 0;
 }
 
@@ -82,19 +79,17 @@ openmc_legendre_filter_set_order(int32_t index, int order)
   if (int err = verify_filter(index)) return err;
 
   // Get a pointer to the filter and downcast.
-  const auto& filt_base = model::tally_filters[index].get();
-  auto* filt = dynamic_cast<LegendreFilter*>(filt_base);
+  auto& filt = model::tally_filters[index];
 
   // Check the filter type.
-  if (!filt) {
+  if (filt.get_type() != Filter::FilterType::LegendreFilter) {
     set_errmsg("Not a legendre filter.");
     return OPENMC_E_INVALID_TYPE;
   }
 
   // Update the filter.
-  filt->set_order(order);
+  filt.LegendreFilter_set_order(order);
   return 0;
 }
-*/
 
 } // namespace openmc

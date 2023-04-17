@@ -105,23 +105,19 @@ Filter::SphericalHarmonicsFilter_text_label(int bin) const
 // C-API functions
 //==============================================================================
 
-/*
-
-std::pair<int, SphericalHarmonicsFilter*>
-check_sphharm_filter(int32_t index)
+std::pair<int, Filter&> check_sphharm_filter(int32_t index)
 {
   // Make sure this is a valid index to an allocated filter.
   int err = verify_filter(index);
   if (err) {
-    return {err, nullptr};
+    return {err, model::tally_filters[0]};
   }
 
   // Get a pointer to the filter and downcast.
-  const auto& filt_base = model::tally_filters[index].get();
-  auto* filt = dynamic_cast<SphericalHarmonicsFilter*>(filt_base);
+  auto& filt = model::tally_filters[index];
 
   // Check the filter type.
-  if (!filt) {
+  if (filt.get_type() != Filter::FilterType::SphericalHarmonicsFilter) {
     set_errmsg("Not a spherical harmonics filter.");
     err = OPENMC_E_INVALID_TYPE;
   }
@@ -138,7 +134,7 @@ openmc_sphharm_filter_get_order(int32_t index, int* order)
   if (err) return err;
 
   // Output the order.
-  *order = filt->order();
+  *order = filt.order();
   return 0;
 }
 
@@ -152,7 +148,7 @@ openmc_sphharm_filter_get_cosine(int32_t index, char cosine[])
   if (err) return err;
 
   // Output the cosine.
-  if (filt->cosine() == SphericalHarmonicsCosine::scatter) {
+  if (filt.cosine() == SphericalHarmonicsCosine::scatter) {
     strcpy(cosine, "scatter");
   } else {
     strcpy(cosine, "particle");
@@ -170,7 +166,7 @@ openmc_sphharm_filter_set_order(int32_t index, int order)
   if (err) return err;
 
   // Update the filter.
-  filt->set_order(order);
+  filt.set_order(order);
   return 0;
 }
 
@@ -185,13 +181,12 @@ openmc_sphharm_filter_set_cosine(int32_t index, const char cosine[])
 
   // Update the filter.
   try {
-    filt->set_cosine(cosine);
+    filt.set_cosine(cosine);
   } catch (const std::invalid_argument& e) {
     set_errmsg(e.what());
     return OPENMC_E_INVALID_ARGUMENT;
   }
   return 0;
 }
-*/
 
 } // namespace openmc

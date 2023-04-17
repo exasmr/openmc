@@ -81,14 +81,14 @@ Filter::MeshSurfaceFilter_text_label(int bin) const
 // C-API functions
 //==============================================================================
 
-/*
-extern"C" int
-openmc_meshsurface_filter_get_mesh(int32_t index, int32_t* index_mesh)
+extern "C" int openmc_meshsurface_filter_get_mesh(
+  int32_t index, int32_t* index_mesh)
 {return openmc_mesh_filter_get_mesh(index, index_mesh);}
 
-extern"C" int
-openmc_meshsurface_filter_set_mesh(int32_t index, int32_t index_mesh)
-{return openmc_mesh_filter_set_mesh(index, index_mesh);}
-*/
+extern "C" int openmc_meshsurface_filter_set_mesh(
+  int32_t index, int32_t index_mesh)
+{
+  return openmc_mesh_filter_set_mesh(index, index_mesh);
+}
 
 } // namespace openmc

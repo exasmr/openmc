@@ -90,7 +90,6 @@ Filter::EnergyFunctionFilter_text_label(int bin) const
 // C-API functions
 //==============================================================================
 
-/*
 extern "C" int
 openmc_energyfunc_filter_set_data(int32_t index, size_t n, const double* energy,
                                   const double* y)
@@ -98,18 +97,13 @@ openmc_energyfunc_filter_set_data(int32_t index, size_t n, const double* energy,
   // Ensure this is a valid index to allocated filter
   if (int err = verify_filter(index)) return err;
 
-  // Get a pointer to the filter
-  const auto& filt_base = model::tally_filters[index].get();
-  // Downcast to EnergyFunctionFilter
-  auto* filt = dynamic_cast<EnergyFunctionFilter*>(filt_base);
-
-  // Check if a valid filter was produced
-  if (!filt) {
+  Filter& filt = model::tally_filters[index];
+  if (filt.get_type() != Filter::FilterType::EnergyFunctionFilter) {
     set_errmsg("Tried to set interpolation data for non-energy function filter.");
     return OPENMC_E_INVALID_TYPE;
   }
 
-  filt->set_data({energy, n}, {y, n});
+  filt.set_data({energy, n}, {y, n});
   return 0;
 }
 
@@ -119,18 +113,14 @@ openmc_energyfunc_filter_get_energy(int32_t index, size_t *n, const double** ene
   // ensure this is a valid index to allocated filter
   if (int err = verify_filter(index)) return err;
 
-  // get a pointer to the filter
-  const auto& filt_base = model::tally_filters[index].get();
-  // downcast to EnergyFunctionFilter
-  auto* filt = dynamic_cast<EnergyFunctionFilter*>(filt_base);
-
-  // check if a valid filter was produced
-  if (!filt) {
+  Filter& filt = model::tally_filters[index];
+  if (filt.get_type() != Filter::FilterType::EnergyFunctionFilter) {
     set_errmsg("Tried to set interpolation data for non-energy function filter.");
     return OPENMC_E_INVALID_TYPE;
   }
-  *energy = filt->energy().data();
-  *n = filt->energy().size();
+
+  *energy = filt.energy().data();
+  *n = filt.energy().size();
   return 0;
 }
 
@@ -140,20 +130,15 @@ openmc_energyfunc_filter_get_y(int32_t index, size_t *n, const double** y)
   // ensure this is a valid index to allocated filter
   if (int err = verify_filter(index)) return err;
 
-  // get a pointer to the filter
-  const auto& filt_base = model::tally_filters[index].get();
-  // downcast to EnergyFunctionFilter
-  auto* filt = dynamic_cast<EnergyFunctionFilter*>(filt_base);
-
-  // check if a valid filter was produced
-  if (!filt) {
+  Filter& filt = model::tally_filters[index];
+  if (filt.get_type() != Filter::FilterType::EnergyFunctionFilter) {
     set_errmsg("Tried to set interpolation data for non-energy function filter.");
     return OPENMC_E_INVALID_TYPE;
   }
-  *y = filt->y().data();
-  *n = filt->y().size();
+
+  *y = filt.y().data();
+  *n = filt.y().size();
   return 0;
 }
-*/
 
 } // namespace openmc

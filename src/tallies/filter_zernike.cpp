@@ -126,22 +126,19 @@ Filter::ZernikeRadialFilter_set_order(int order)
 // C-API functions
 //==============================================================================
 
-/*
-std::pair<int, ZernikeFilter*>
-check_zernike_filter(int32_t index)
+std::pair<int, Filter&> check_zernike_filter(int32_t index)
 {
   // Make sure this is a valid index to an allocated filter.
   int err = verify_filter(index);
   if (err) {
-    return {err, nullptr};
+    return {err, model::tally_filters[0]};
   }
 
   // Get a pointer to the filter and downcast.
-  const auto& filt_base = model::tally_filters[index].get();
-  auto* filt = dynamic_cast<ZernikeFilter*>(filt_base);
+  auto& filt = model::tally_filters[index];
 
   // Check the filter type.
-  if (!filt) {
+  if (filt.get_type() != Filter::FilterType::ZernikeFilter) {
     set_errmsg("Not a Zernike filter.");
     err = OPENMC_E_INVALID_TYPE;
   }
@@ -158,7 +155,7 @@ openmc_zernike_filter_get_order(int32_t index, int* order)
   if (err) return err;
 
   // Output the order.
-  *order = filt->order();
+  *order = filt.order();
   return 0;
 }
 
@@ -173,9 +170,9 @@ openmc_zernike_filter_get_params(int32_t index, double* x, double* y,
   if (err) return err;
 
   // Output the params.
-  *x = filt->x();
-  *y = filt->yy();
-  *r = filt->r();
+  *x = filt.x();
+  *y = filt.yy();
+  *r = filt.r();
   return 0;
 }
 
@@ -189,7 +186,7 @@ openmc_zernike_filter_set_order(int32_t index, int order)
   if (err) return err;
 
   // Update the filter.
-  filt->set_order(order);
+  filt.set_order(order);
   return 0;
 }
 
@@ -204,11 +201,13 @@ openmc_zernike_filter_set_params(int32_t index, const double* x,
   if (err) return err;
 
   // Update the filter.
-  if (x) filt->set_x(*x);
-  if (y) filt->set_yy(*y);
-  if (r) filt->set_r(*r);
+  if (x)
+    filt.set_x(*x);
+  if (y)
+    filt.set_y(*y);
+  if (r)
+    filt.set_r(*r);
   return 0;
 }
-*/
 
 } // namespace openmc
