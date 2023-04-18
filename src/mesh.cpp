@@ -2,9 +2,10 @@
 
 #include <algorithm> // for copy, equal, min, min_element
 #include <array>
-#include <cstddef> // for size_t
-#include <cmath>  // for ceil
-#include <memory> // for allocator
+#include <cmath>      // for ceil
+#include <cstddef>    // for size_t
+#include <functional> // std::bind
+#include <memory>     // for allocator
 #include <string>
 
 #ifdef OPENMC_MPI
@@ -72,13 +73,7 @@ inline bool check_intersection_point(double x1, double x0, double y1,
 // Mesh implementation
 //==============================================================================
 
-void Mesh::copy_to_device()
-{
-  lower_left_.copy_to_device();
-  upper_right_.copy_to_device();
-  shape_.copy_to_device();
-  width_.copy_to_device();
-}
+void Mesh::copy_to_device() {}
 
 Mesh::Mesh(pugi::xml_node node)
 {
@@ -98,30 +93,36 @@ Mesh::Mesh(pugi::xml_node node)
     fatal_error("Must specify <dimension> on a regular mesh.");
   }
 
-  shape_ = get_node_array_ov<int>(node, "dimension");
-  int n = n_dimension_ = shape_.size();
+  auto shape_tmp = get_node_array<int>(node, "dimension");
+  int n = n_dimension_ = shape_tmp.size();
   if (n != 1 && n != 2 && n != 3) {
     fatal_error("Mesh must be one, two, or three dimensions.");
   }
+  std::fill(shape_.begin(), shape_.end(), 1);
+  std::copy(shape_tmp.begin(), shape_tmp.end(), shape_.begin());
 
   // Check that dimensions are all greater than zero
-  //if (xt::any(shape_ <= 0)) {
-  //  fatal_error("All entries on the <dimension> element for a tally "
-  //    "mesh must be positive.");
-  //}
+  using namespace std::placeholders;
+  if (std::any_of(shape_.begin(), shape_.end(),
+        std::bind(std::less_equal<int>(), _1, 0))) {
+    fatal_error("All entries on the <dimension> element for a tally "
+                "mesh must be positive.");
+  }
 
   // Check for lower-left coordinates
   if (check_for_node(node, "lower_left")) {
     // Read mesh lower-left corner location
-    lower_left_ = get_node_array_ov<double>(node, "lower_left");
+    auto tmp = get_node_array<double>(node, "lower_left");
+
+    // Make sure lower_left and dimension match
+    if (n_dimension_ != tmp.size()) {
+      fatal_error("Number of entries on <lower_left> must be the same "
+                  "as the number of entries on <dimension>.");
+    }
+
+    std::copy(tmp.begin(), tmp.end(), lower_left_.begin());
   } else {
     fatal_error("Must specify <lower_left> on a mesh.");
-  }
-
-  // Make sure lower_left and dimension match
-  if (shape_.size() != lower_left_.size()) {
-    fatal_error("Number of entries on <lower_left> must be the same "
-      "as the number of entries on <dimension>.");
   }
 
   if (check_for_node(node, "width")) {
@@ -130,53 +131,55 @@ Mesh::Mesh(pugi::xml_node node)
       fatal_error("Cannot specify both <upper_right> and <width> on a mesh.");
     }
 
-    width_ = get_node_array_ov<double>(node, "width");
+    auto width_tmp = get_node_array<double>(node, "width");
 
     // Check to ensure width has same dimensions
-    auto n = width_.size();
-    if (n != lower_left_.size()) {
+    auto n = width_tmp.size();
+    if (n != n_dimension_) {
       fatal_error("Number of entries on <width> must be the same as "
         "the number of entries on <lower_left>.");
     }
 
     // Check for negative widths
-    //if (xt::any(width_ < 0.0)) {
-    //  fatal_error("Cannot have a negative <width> on a tally mesh.");
-    //}
+    if (std::any_of(width_tmp.begin(), width_tmp.end(),
+          std::bind(std::less_equal<double>(), _1, 0))) {
+      fatal_error("Cannot have a negative <width> on a tally mesh.");
+    }
+    std::copy(width_tmp.begin(), width_tmp.end(), width_.begin());
 
     // Set width and upper right coordinate
-    for (int i = 0; i < lower_left_.size(); i++) {
-      upper_right_.push_back(lower_left_[i] + shape_[i] * width_[i]);
+    for (int i = 0; i < n_dimension_; i++) {
+      upper_right_[i] = lower_left_[i] + shape_[i] * width_[i];
     }
   } else if (check_for_node(node, "upper_right")) {
-    upper_right_ = get_node_array_ov<double>(node, "upper_right");
+    auto upper_right_tmp = get_node_array<double>(node, "upper_right");
 
     // Check to ensure width has same dimensions
-    auto n = upper_right_.size();
-    if (n != lower_left_.size()) {
+    auto n = upper_right_tmp.size();
+    if (n != n_dimension_) {
       fatal_error("Number of entries on <upper_right> must be the "
         "same as the number of entries on <lower_left>.");
     }
 
     // Check that upper-right is above lower-left
-    //if (xt::any(upper_right_ < lower_left_)) {
-    //  fatal_error("The <upper_right> coordinates must be greater than "
-    //    "the <lower_left> coordinates on a tally mesh.");
-    //}
+    for (int i = 0; i < n_dimension_; ++i) {
+      if (upper_right_[i] < lower_left_[i]) {
+        fatal_error("The <upper_right> coordinates must be greater than "
+                    "the <lower_left> coordinates on a tally mesh.");
+      }
+    }
 
     // Set width
-    for (int i = 0; i < upper_right_.size(); i++) {
-      width_.push_back((upper_right_[i] - lower_left_[i]) / shape_[i]);
+    for (int i = 0; i < n_dimension_; i++) {
+      width_[i] = (upper_right_[i] - lower_left_[i]) / shape_[i];
     }
   } else {
     fatal_error("Must specify either <upper_right> and <width> on a mesh.");
   }
 
   // Set volume fraction
-  int prod = shape_[0];
-  for (int i = 1; i < shape_.size(); i++) {
-    prod *= shape_[i];
-  }
+  int prod =
+    std::accumulate(shape_.begin(), shape_.end(), 1, std::multiplies());
   volume_frac_ = 1.0/prod;
 }
 
@@ -218,7 +221,7 @@ int Mesh::get_bin_from_indices(const int* ijk) const
   case 3:
     return ((ijk[2] - 1)*shape_[1] + (ijk[1] - 1))*shape_[0] + ijk[0] - 1;
   default:
-    printf("Error: Invalid number of mesh dimensions\n");
+    fatal_error("Invalid number of mesh dimensions\n");
   }
 }
 
@@ -328,7 +331,7 @@ bool Mesh::intersects(Position& r0, Position r1, int* ijk) const
   case 3:
     return intersects_3d(r0, r1, ijk);
   default:
-    printf("Error: Invalid number of mesh dimensions.\n");
+    fatal_error("Invalid number of mesh dimensions.\n");
   }
 }
 
@@ -1238,14 +1241,19 @@ extern "C" int
 openmc_extend_meshes(int32_t n, const char* type, int32_t* index_start,
                      int32_t* index_end)
 {
-      fatal_error("Extending Meshes Not Yet Supported On Device!");
-      /*
   if (index_start) *index_start = model::meshes_size;
   std::string mesh_type;
 
+  // Create a new meshes array, and copy the old stuff to it
+  Mesh* meshes_tmp =
+    static_cast<Mesh*>(malloc((model::meshes_size + n) * sizeof(Mesh)));
+  memcpy(meshes_tmp, model::meshes, sizeof(Mesh) * model::meshes_size);
+  std::swap(meshes_tmp, model::meshes);
+  free(meshes_tmp);
+
   for (int i = 0; i < n; ++i) {
     if (std::strcmp(type, "regular") == 0) {
-      model::meshes.push_back(std::make_unique<Mesh>());
+      new (model::meshes + model::meshes_size + i) Mesh();
     } else if (std::strcmp(type, "rectilinear") == 0) {
       fatal_error("Rectilinear Meshes Not Yet Supported On Device!");
       //model::meshes.push_back(std::make_unique<RectilinearMesh>());
@@ -1253,9 +1261,11 @@ openmc_extend_meshes(int32_t n, const char* type, int32_t* index_start,
       throw std::runtime_error{"Unknown mesh type: " + std::string(type)};
     }
   }
-  if (index_end) *index_end = model::meshes.size() - 1;
 
-  */
+  model::meshes_size += n;
+  if (index_end)
+    *index_end = model::meshes_size - 1;
+
   return 0;
 }
 
@@ -1310,12 +1320,10 @@ openmc_regular_mesh_set_dimension(int32_t index, int n, const int* dims)
   Mesh* mesh = &model::meshes[index];
 
   // Copy dimension
-  vector<int> shape;
   for (int i = 0; i < n; i++) {
-    shape.push_back(dims[i]);
+    mesh->shape_[i] = dims[i];
   }
-  mesh->shape_ = shape;
-  mesh->n_dimension_ = mesh->shape_.size();
+  mesh->n_dimension_ = n;
   return 0;
 }
 
@@ -1344,29 +1352,28 @@ extern "C" int
 openmc_regular_mesh_set_params(int32_t index, int n, const double* ll,
                                const double* ur, const double* width)
 {
-  fatal_error("setting regular mesh params from C interface not supported on device.");
-  /*
   if (int err = check_mesh_type<Mesh>(index)) return err;
-  Mesh* m = &model::meshes[index];
+  Mesh& m = model::meshes[index];
 
-  std::vector<std::size_t> shape = {static_cast<std::size_t>(n)};
   if (ll && ur) {
-    m->lower_left_ = xt::adapt(ll, n, xt::no_ownership(), shape);
-    m->upper_right_ = xt::adapt(ur, n, xt::no_ownership(), shape);
-    m->width_ = (m->upper_right_ - m->lower_left_) / m->shape_;
+    std::copy(ll, ll + n, m.lower_left_.begin());
+    std::copy(ur, ur + n, m.upper_right_.begin());
+    for (int i = 0; i < n; ++i)
+      m.width_[i] = (m.upper_right_[i] - m.lower_left_[i]) / m.shape_[i];
   } else if (ll && width) {
-    m->lower_left_ = xt::adapt(ll, n, xt::no_ownership(), shape);
-    m->width_ = xt::adapt(width, n, xt::no_ownership(), shape);
-    m->upper_right_ = m->lower_left_ + m->shape_ * m->width_;
+    std::copy(ll, ll + n, m.lower_left_.begin());
+    std::copy(width, width + n, m.width_.begin());
+    for (int i = 0; i < n; ++i)
+      m.upper_right_[i] = m.lower_left_[i] + m.shape_[i] * m.width_[i];
   } else if (ur && width) {
-    m->upper_right_ = xt::adapt(ur, n, xt::no_ownership(), shape);
-    m->width_ = xt::adapt(width, n, xt::no_ownership(), shape);
-    m->lower_left_ = m->upper_right_ - m->shape_ * m->width_;
+    std::copy(ur, ur + n, m.upper_right_.begin());
+    std::copy(width, width + n, m.width_.begin());
+    for (int i = 0; i < n; ++i)
+      m.lower_left_[i] = m.upper_right_[i] - m.shape_[i] * m.width_[i];
   } else {
     set_errmsg("At least two parameters must be specified.");
     return OPENMC_E_INVALID_ARGUMENT;
   }
-  */
 
   return 0;
 }

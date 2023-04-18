@@ -88,6 +88,19 @@ void move_settings_to_device()
   #pragma omp target update to(model::root_universe)
 }
 
+void update_device_meshes()
+{
+  if (mpi::master) {
+    std::cout << " Moving " << model::meshes_size << " meshes to device..."
+              << std::endl;
+  }
+#pragma omp target update to(model::meshes_size)
+#pragma omp target enter data map(to : model::meshes[:model::meshes_size])
+  for (int i = 0; i < model::meshes_size; i++) {
+    model::meshes[i].copy_to_device();
+  }
+}
+
 void move_read_only_data_to_device()
 {
   // Enforce any device-specific assumptions or limitations on user inputs
@@ -329,14 +342,7 @@ void move_read_only_data_to_device()
 
   // Meshes ////////////////////////////////////////////////////////////////
 
-  if (mpi::master) {
-    std::cout << " Moving " << model::meshes_size << " meshes to device..." << std::endl;
-  }
-  #pragma omp target update to(model::meshes_size)
-  #pragma omp target enter data map(to: model::meshes[:model::meshes_size])
-  for (int i = 0; i < model::meshes_size; i++) {
-    model::meshes[i].copy_to_device();
-  }
+  update_device_meshes();
 
   // Tallies ///////////////////////////////////////////////////
 

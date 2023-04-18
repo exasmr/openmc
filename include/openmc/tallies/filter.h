@@ -84,6 +84,7 @@ public:
   ~Filter();
 
   Filter(pugi::xml_node node, int32_t index);
+  Filter(FilterType type, int32_t index) : type_(type), index_(index) {}
 
   //! Uses an XML input to fill the filter's data fields.
   void from_xml(pugi::xml_node node);
@@ -117,9 +118,10 @@ public:
 
   std::string type() const;
   FilterType get_type() const {return type_;}
-  FilterType get_filter_type(const std::string& type);
+  void set_type(FilterType type) { type_ = type; }
+  static FilterType get_filter_type(const std::string& type);
 
-  #pragma omp declare target
+#pragma omp declare target
   //! Matches a tally event to a set of filter bins and weights.
   //!
   //! \param[in] p Particle being tracked

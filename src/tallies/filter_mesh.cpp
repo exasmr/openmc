@@ -79,13 +79,15 @@ openmc_mesh_filter_get_mesh(int32_t index, int32_t* index_mesh)
   const auto& filt = model::tally_filters[index];
 
   // Check the filter type.
-  if (filt.get_type() != Filter::FilterType::MeshFilter) {
+  if (filt.get_type() != Filter::FilterType::MeshFilter &&
+      filt.get_type() != Filter::FilterType::MeshSurfaceFilter) {
     set_errmsg("Tried to get mesh on a non-mesh filter.");
     return OPENMC_E_INVALID_TYPE;
   }
 
   // Output the mesh.
-  return filt.mesh();
+  *index_mesh = filt.mesh();
+  return 0;
 }
 
 extern "C" int
@@ -98,7 +100,8 @@ openmc_mesh_filter_set_mesh(int32_t index, int32_t index_mesh)
   auto& filt = model::tally_filters[index];
 
   // Check the filter type.
-  if (filt.get_type() != Filter::FilterType::MeshFilter) {
+  if (filt.get_type() != Filter::FilterType::MeshFilter &&
+      filt.get_type() != Filter::FilterType::MeshSurfaceFilter) {
     set_errmsg("Tried to set mesh on a non-mesh filter.");
     return OPENMC_E_INVALID_TYPE;
   }

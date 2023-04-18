@@ -168,12 +168,13 @@ public:
   int n_dimension_; //!< Number of dimensions
 
   // Data members
-  vector<double> lower_left_; //!< Lower-left coordinates of mesh
-  vector<double> upper_right_; //!< Upper-right coordinates of mesh
-  vector<int> shape_; //!< Number of mesh elements in each dimension
+  std::array<double, 3> lower_left_;  //!< Lower-left coordinates of mesh
+  std::array<double, 3> upper_right_; //!< Upper-right coordinates of mesh
+  std::array<int, 3> shape_ = {
+    1, 1, 1}; //!< Number of mesh elements in each dimension
 
   double volume_frac_; //!< Volume fraction of each mesh element
-  vector<double> width_; //!< Width of each mesh element
+  std::array<double, 3> width_; //!< Width of each mesh element
 };
 
 

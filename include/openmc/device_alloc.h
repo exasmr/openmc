@@ -8,6 +8,8 @@
 
 namespace openmc {
 
+void update_device_meshes();
+
 void move_read_only_data_to_device();
 
 void release_data_from_device();
