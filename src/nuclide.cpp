@@ -839,8 +839,15 @@ extern "C" int openmc_load_nuclide(const char* name, const double* temps, int n)
     hid_t group = open_group(file_id, name);
     std::vector<double> temperature{temps, temps + n};
 
+    data::nuclides = static_cast<Nuclide*>(std::realloc(
+      data::nuclides, (data::nuclides_capacity + 1) * sizeof(Nuclide)));
+    if (data::nuclides == nullptr) {
+      set_errmsg("Failed to realloc nuclide array in openmc_load_nuclide.");
+      return OPENMC_E_ALLOCATE;
+    }
     new(data::nuclides + data::nuclides_size) Nuclide(group, temperature);
     ++data::nuclides_size;
+    ++data::nuclides_capacity;
 
     close_group(group);
     file_close(file_id);
@@ -872,8 +879,16 @@ extern "C" int openmc_load_nuclide(const char* name, const double* temps, int n)
 
         // Read element data from HDF5
         hid_t group = open_group(file_id, element.c_str());
+        data::elements =
+          static_cast<PhotonInteraction*>(std::realloc(data::elements,
+            (data::elements_capacity + 1) * sizeof(PhotonInteraction)));
+        if (data::elements == nullptr) {
+          set_errmsg("Failed to realloc data::elements array");
+          return OPENMC_E_ALLOCATE;
+        }
         new(data::elements + data::elements_size) PhotonInteraction(group);
         ++data::elements_size;
+        ++data::elements_capacity;
 
         close_group(group);
         file_close(file_id);
@@ -932,7 +947,7 @@ void nuclides_clear()
   for (int i = 0; i < data::nuclides_size; ++i) {
     data::nuclides[i].~Nuclide();
   }
-  free(data::nuclides);
+  std::free(data::nuclides);
   data::nuclides_capacity = 0;
   data::nuclides_size = 0;
   data::nuclide_map.clear();

@@ -404,21 +404,18 @@ openmc_get_filter_next_id(int32_t* id)
 extern "C" int
 openmc_new_filter(const char* type, int32_t* index)
 {
-  // shorthand because this is used a bit
-  auto& n = model::n_tally_filters;
-  *index = n;
+  *index = model::n_tally_filters;
+  model::n_tally_filters++;
 
   // Make a longer filters array
-  Filter* filters_tmp = static_cast<Filter*>(malloc((n + 1) * sizeof(Filter)));
-  memcpy(filters_tmp, model::tally_filters, n * sizeof(Filter));
-  std::swap(filters_tmp, model::tally_filters);
-  free(filters_tmp);
+  model::tally_filters = static_cast<Filter*>(std::realloc(
+    model::tally_filters, model::n_tally_filters * sizeof(Filter)));
 
   // initialize and set the filter type
   Filter::FilterType type_enum = Filter::get_filter_type(std::string(type));
-  new (model::tally_filters + n) Filter(type_enum, n);
+  new (model::tally_filters + model::n_tally_filters - 1)
+    Filter(type_enum, model::n_tally_filters - 1);
 
-  n++;
   return 0;
 }
 
