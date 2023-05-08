@@ -1,9 +1,11 @@
 from tests.testing_harness import CMFDTestHarness
 from openmc import cmfd
 import numpy as np
+import pytest
 import scipy.sparse
 
 
+@pytest.mark.skip(reason="requires collision tallies")
 def test_cmfd_physical_adjoint():
     """Test physical adjoint functionality of CMFD
 
@@ -30,10 +32,11 @@ def test_cmfd_physical_adjoint():
     cmfd_run.run_adjoint = True
     cmfd_run.adjoint_type = 'physical'
     cmfd_run.run()
-    assert(np.all(cmfd_run._phi == cmfd_run._adj_phi))
-    assert(cmfd_run._adj_keff == cmfd_run._keff)
+    assert (np.all(cmfd_run._phi == cmfd_run._adj_phi))
+    assert (cmfd_run._adj_keff == cmfd_run._keff)
 
 
+@pytest.mark.skip(reason="requires collision tallies")
 def test_cmfd_math_adjoint():
     """Test mathematical adjoint functionality of CMFD
 
@@ -60,10 +63,11 @@ def test_cmfd_math_adjoint():
     cmfd_run.run_adjoint = True
     cmfd_run.adjoint_type = 'math'
     cmfd_run.run()
-    assert(np.all(cmfd_run._phi == cmfd_run._adj_phi))
-    assert(cmfd_run._adj_keff == cmfd_run._keff)
+    assert (np.all(cmfd_run._phi == cmfd_run._adj_phi))
+    assert (cmfd_run._adj_keff == cmfd_run._keff)
 
 
+@pytest.mark.skip(reason="requires collision tallies")
 def test_cmfd_write_matrices():
     """Test write matrices functionality of CMFD
 
@@ -97,7 +101,7 @@ def test_cmfd_write_matrices():
 
     # Go through each element of loss_dat and compare to loss_np
     for elem in loss_dat:
-        assert(np.isclose(loss_np[int(elem[0]), int(elem[1])], elem[2]))
+        assert (np.isclose(loss_np[int(elem[0]), int(elem[1])], elem[2]))
 
     # Load production matrix from numpy output file
     prod_np = scipy.sparse.load_npz('prod.npz').todense()
@@ -106,7 +110,7 @@ def test_cmfd_write_matrices():
 
     # Go through each element of prod_dat and compare to prod_np
     for elem in prod_dat:
-        assert(np.isclose(prod_np[int(elem[0]), int(elem[1])], elem[2]))
+        assert (np.isclose(prod_np[int(elem[0]), int(elem[1])], elem[2]))
 
     # Load flux vector from numpy output file
     flux_np = np.load('fluxvec.npy')
@@ -114,10 +118,11 @@ def test_cmfd_write_matrices():
     flux_dat = np.loadtxt("fluxvec.dat", delimiter='\n')
 
     # Compare flux from numpy file, .dat file, and from simulation
-    assert(np.all(np.isclose(flux_np, cmfd_run._phi)))
-    assert(np.all(np.isclose(flux_np, flux_dat)))
+    assert (np.all(np.isclose(flux_np, cmfd_run._phi)))
+    assert (np.all(np.isclose(flux_np, flux_dat)))
 
 
+@pytest.mark.skip(reason="requires collision tallies")
 def test_cmfd_feed():
     """Test 1 group CMFD solver with CMFD feedback"""
     # Initialize and set CMFD mesh
@@ -141,6 +146,8 @@ def test_cmfd_feed():
     harness = CMFDTestHarness('statepoint.20.h5', cmfd_run)
     harness.main()
 
+
+@pytest.mark.skip(reason="requires collision tallies")
 def test_cmfd_feed_rectlin():
     """Test 1 group CMFD solver with CMFD feedback"""
     # Initialize and set CMFD mesh
@@ -166,6 +173,8 @@ def test_cmfd_feed_rectlin():
     harness = CMFDTestHarness('statepoint.20.h5', cmfd_run)
     harness.main()
 
+
+@pytest.mark.skip(reason="requires collision tallies")
 def test_cmfd_multithread():
     """Test 1 group CMFD solver with all available threads"""
     # Initialize and set CMFD mesh

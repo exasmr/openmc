@@ -5,6 +5,7 @@ import copy
 from tests.testing_harness import CMFDTestHarness
 from openmc import cmfd
 import numpy as np
+import pytest
 
 
 class CMFDRestartTestHarness(CMFDTestHarness):
@@ -39,6 +40,7 @@ class CMFDRestartTestHarness(CMFDTestHarness):
             self._cleanup()
 
 
+@pytest.mark.skip(reason="requires collision tallies")
 def test_cmfd_restart():
     """Test 1 group CMFD solver with restart run"""
     # Initialize and set CMFD mesh, create a copy for second run

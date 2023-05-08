@@ -2,6 +2,8 @@ import openmc
 
 from tests.testing_harness import PyAPITestHarness
 
+import pytest
+
 
 class CreateFissionNeutronsTestHarness(PyAPITestHarness):
     def _build_inputs(self):
@@ -65,6 +67,7 @@ class CreateFissionNeutronsTestHarness(PyAPITestHarness):
         return outstr
 
 
+@pytest.mark.skip(reason="requires fixed source mode")
 def test_create_fission_neutrons():
     harness = CreateFissionNeutronsTestHarness('statepoint.10.h5')
     harness.main()

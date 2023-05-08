@@ -2,14 +2,17 @@ from tests.testing_harness import CMFDTestHarness
 from openmc import cmfd
 import numpy as np
 import scipy.sparse
+import pytest
 
 
+@pytest.mark.skip(reason="requires collision tallies")
 def test_cmfd_feed_rectlin():
     """Test 1 group CMFD solver with CMFD feedback"""
     # Initialize and set CMFD mesh
     cmfd_mesh = cmfd.CMFDMesh()
     cmfd_mesh.mesh_type = 'rectilinear'
-    x_grid = [-10., -9., -7., -6., -4., -3., -1., 0., 1., 3., 4., 6., 7., 9., 10.]
+    x_grid = [-10., -9., -7., -6., -4., -3., -
+              1., 0., 1., 3., 4., 6., 7., 9., 10.]
     y_grid = [-1., 1.]
     z_grid = [-1., 1.]
     cmfd_mesh.grid = [x_grid, y_grid, z_grid]

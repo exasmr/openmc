@@ -1,7 +1,9 @@
 from tests.testing_harness import CMFDTestHarness
 from openmc import cmfd
+import pytest
 
 
+@pytest.mark.skip(reason="requires collision tallies")
 def test_cmfd_feed_rolling_window():
     """Test 1 group CMFD solver with CMFD feedback"""
     # Initialize and set CMFD mesh

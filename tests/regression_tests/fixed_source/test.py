@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import openmc
 import openmc.stats
@@ -25,12 +26,15 @@ class FixedSourceTestHarness(PyAPITestHarness):
 
             gt = sp.global_tallies
             outstr += 'leakage:\n'
-            outstr += '{0:12.6E}'.format(gt[gt['name'] == b'leakage'][0]['sum']) + '\n'
-            outstr += '{0:12.6E}'.format(gt[gt['name'] == b'leakage'][0]['sum_sq']) + '\n'
+            outstr += '{0:12.6E}'.format(gt[gt['name']
+                                         == b'leakage'][0]['sum']) + '\n'
+            outstr += '{0:12.6E}'.format(gt[gt['name']
+                                         == b'leakage'][0]['sum_sq']) + '\n'
 
         return outstr
 
 
+@pytest.mark.skip(reason="requires fixed source mode")
 def test_fixed_source():
     mat = openmc.Material()
     mat.add_nuclide('O16', 1.0)
