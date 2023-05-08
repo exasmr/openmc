@@ -992,6 +992,17 @@ openmc_extend_tallies(int32_t n, int32_t* index_start, int32_t* index_end)
 {
   if (index_start) *index_start = model::tallies_size;
   if (index_end) *index_end = model::tallies_size + n - 1;
+
+  // allocate memory
+  model::tallies = static_cast<Tally*>(
+    std::realloc(model::tallies, sizeof(Tally) * (model::tallies_size + n)));
+  if (model::tallies == nullptr) {
+    set_errmsg("Failed to realloc tally array in extend_tallies.");
+    if (model::tallies)
+      std::free(model::tallies);
+    return OPENMC_E_ALLOCATE;
+  }
+
   for (int i = 0; i < n; ++i) {
     new(model::tallies + model::tallies_size) Tally(-1);
     ++model::tallies_size;
