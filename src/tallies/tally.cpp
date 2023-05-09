@@ -285,6 +285,7 @@ Tally::~Tally()
 
   if (results_)
     std::free(results_);
+  results_ = nullptr;
 }
 
 Tally*
@@ -963,14 +964,16 @@ free_memory_tally()
   for (int i = 0; i < model::n_tally_filters; i++) {
     model::tally_filters[i].~Filter();
   }
-  free(model::tally_filters);
+  std::free(model::tally_filters);
+  model::tally_filters = nullptr;
   model::n_tally_filters = 0;
   model::filter_map.clear();
 
   for (int i = 0; i < model::tallies_size; ++i) {
     model::tallies[i].~Tally();
   }
-  free(model::tallies);
+  std::free(model::tallies);
+  model::tallies = nullptr;
   model::tallies_size = 0;
 
   #pragma omp target exit data map(release: model::device_active_tallies[:model::active_tallies.size()])
@@ -1002,8 +1005,10 @@ openmc_extend_tallies(int32_t n, int32_t* index_start, int32_t* index_end)
     std::realloc(model::tallies, sizeof(Tally) * (model::tallies_size + n)));
   if (model::tallies == nullptr) {
     set_errmsg("Failed to realloc tally array in extend_tallies.");
-    if (model::tallies)
+    if (model::tallies) {
       std::free(model::tallies);
+      model::tallies = nullptr;
+    }
     return OPENMC_E_ALLOCATE;
   }
 

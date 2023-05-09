@@ -1005,7 +1005,10 @@ void free_memory_photon()
   free(data::elements);
   data::elements_capacity = 0;
   data::elements_size = 0;
+  data::elements = nullptr;
+
   free(data::compton_profile_pz);
+  data::compton_profile_pz = nullptr;
   data::compton_profile_pz_size = 0;
   data::ttb_e_grid.resize({0});
   data::ttb_k_grid.resize({0});

@@ -2080,6 +2080,7 @@ void free_memory_mesh()
     model::meshes[i].~Mesh();
   }
   std::free(model::meshes);
+  model::meshes = nullptr;
   model::meshes_size = 0;
   model::mesh_map.clear();
 }

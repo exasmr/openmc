@@ -1279,6 +1279,7 @@ void free_memory_material()
     model::materials[i].~Material();
   }
   free(model::materials);
+  model::materials = nullptr;
   model::materials_size = 0;
   model::material_map.clear();
   unique_index = 0;

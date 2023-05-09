@@ -963,6 +963,7 @@ void nuclides_clear()
     data::nuclides[i].~Nuclide();
   }
   std::free(data::nuclides);
+  data::nuclides = nullptr;
   data::nuclides_capacity = 0;
   data::nuclides_size = 0;
   data::nuclide_map.clear();
