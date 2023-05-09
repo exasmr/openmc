@@ -627,7 +627,8 @@ write_tallies()
 
     // Write header block.
     std::string tally_header("TALLY " + std::to_string(tally.id_));
-    if (!tally.name_.empty()) tally_header += ": " + tally.name_;
+    if (!tally.name_empty())
+      tally_header += ": " + tally.name();
     fmt::print(tallies_out, "{}\n\n", header(tally_header));
 
     if (!tally.writable_) {

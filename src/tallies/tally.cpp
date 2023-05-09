@@ -84,7 +84,8 @@ Tally::Tally(pugi::xml_node node)
   int32_t id = std::stoi(get_node_value(node, "id"));
   this->set_id(id);
 
-  if (check_for_node(node, "name")) name_ = get_node_value(node, "name");
+  if (check_for_node(node, "name"))
+    set_name(get_node_value(node, "name"));
 
   // =======================================================================
   // READ DATA FOR FILTERS

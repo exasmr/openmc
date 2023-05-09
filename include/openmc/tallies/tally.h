@@ -2,6 +2,7 @@
 #define OPENMC_TALLIES_TALLY_H
 
 #include "openmc/constants.h"
+#include "openmc/named.h"
 #include "openmc/tallies/filter.h"
 #include "openmc/tallies/trigger.h"
 #include "openmc/vector.h"
@@ -23,7 +24,7 @@ namespace openmc {
 //! A user-specified flux-weighted (or current) measurement.
 //==============================================================================
 
-class Tally {
+class Tally : public Named<16> {
 public:
   //----------------------------------------------------------------------------
   // Constructors, destructors, factory functions
@@ -88,8 +89,6 @@ public:
   // Major public data members.
 
   int id_ {C_NONE}; //!< User-defined identifier
-
-  std::string name_; //!< User-defined name
 
   TallyType type_ {TallyType::VOLUME}; //!< e.g. volume, surface current
 

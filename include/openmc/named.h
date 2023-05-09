@@ -41,6 +41,8 @@ public:
 
   const char* name_data() const { return name_; }
 
+  bool name_empty() const { return name_[0] == '\0'; }
+
 private:
   char name_[MaxNameLength];
 };

@@ -181,7 +181,7 @@ openmc_statepoint_write(const char* filename, bool* write_source)
         hid_t tally_group = create_group(tallies_group,
           "tally " + std::to_string(tally->id_));
 
-        write_dataset(tally_group, "name",  tally->name_);
+        write_dataset(tally_group, "name", tally->name());
 
         if (tally->writable_) {
           write_attribute(tally_group, "internal", 0);
