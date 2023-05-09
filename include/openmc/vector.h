@@ -174,46 +174,34 @@ public:
     std::swap(data_, other.data_);
   }
 
-  void copy_to_device() {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wopenmp-mapping"
-#pragma omp target enter data map(to: data_[:size_])
-#pragma GCC diagnostic pop
+  void copy_to_device()
+  {
+#pragma omp target enter data map(to : data_[:size_])
   }
 
-  void allocate_on_device() {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wopenmp-mapping"
-#pragma omp target enter data map(alloc: data_[:size_])
-#pragma GCC diagnostic pop
+  void allocate_on_device()
+  {
+#pragma omp target enter data map(alloc : data_[:size_])
   }
 
-  void update_to_device() {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wopenmp-mapping"
+  void update_to_device()
+  {
 #pragma omp target update to(data_[:size_])
-#pragma GCC diagnostic pop
   }
 
-  void update_from_device() {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wopenmp-mapping"
+  void update_from_device()
+  {
 #pragma omp target update from(data_[:size_])
-#pragma GCC diagnostic pop
   }
 
-  void copy_from_device() {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wopenmp-mapping"
-#pragma omp target exit data map(from: data_[:size_])
-#pragma GCC diagnostic pop
+  void copy_from_device()
+  {
+#pragma omp target exit data map(from : data_[:size_])
   }
 
-  void release_device() {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wopenmp-mapping"
-#pragma omp target exit data map(release: data_[:size_])
-#pragma GCC diagnostic pop
+  void release_device()
+  {
+#pragma omp target exit data map(release : data_[:size_])
   }
 
 protected:
