@@ -1502,26 +1502,17 @@ openmc_extend_materials(int32_t n, int32_t* index_start, int32_t* index_end)
   if (index_start) *index_start = model::materials_size;
   if (index_end) *index_end = model::materials_size + n - 1;
 
-  // Allocate temporary buffer
-  Material* tmp = static_cast<Material*>(malloc(n * sizeof(Material)));
-
-  // Transfer data from existing buffer to temporary one
-  for (int32_t i = 0; i < model::materials_size; i++) {
-    tmp[i] = model::materials[i];
+  model::materials = static_cast<Material*>(std::realloc(
+    model::materials, (n + model::materials_size) * sizeof(Material)));
+  if (model::materials == nullptr) {
+    set_errmsg("failed to realloc materials array");
+    return OPENMC_E_ALLOCATE;
   }
 
   // Construct extended elements
   for (int32_t i = 0; i < n; i++) {
-    new (tmp + model::materials_size + i++) Material();
+    new (model::materials + model::materials_size + i++) Material();
   }
-
-  // Delete existing materials array and assign to new pointer
-  for (int i = 0; i < model::materials_size; i++) {
-    model::materials[i].~Material();
-  }
-  free(model::materials);
-
-  model::materials = tmp;
   model::materials_size += n;
 
   return 0;
