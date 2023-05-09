@@ -54,12 +54,12 @@ vector2d<ThermalTable> materials_thermal_tables;
 // Material implementation
 //==============================================================================
 
+// tracks current index of materials. if we clear the array
+// this must be reset, as someone once forgot to do ;)
+static uint64_t unique_index = 0;
+
 Material::Material(pugi::xml_node node)
 {
-  // Declare a static variable to track this material's index in
-  // the model::materials array
-  static uint64_t unique_index = 0;
-
   index_ = unique_index++; // Avoids warning about narrowing
 
   if (check_for_node(node, "id")) {
@@ -1281,6 +1281,7 @@ void free_memory_material()
   free(model::materials);
   model::materials_size = 0;
   model::material_map.clear();
+  unique_index = 0;
 }
 
 //==============================================================================
