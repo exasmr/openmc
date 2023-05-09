@@ -110,7 +110,7 @@ public:
   //! combination of filters (e.g. specific cell, specific energy group, etc.)
   //! and the second dimension of the array is for scores (e.g. flux, total
   //! reaction rate, fission reaction rate, etc.)
-  double* results_;
+  double* results_ {nullptr};
   size_t results_size_ {0};
   size_t n_scores_;
 

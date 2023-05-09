@@ -282,6 +282,9 @@ Tally::Tally(pugi::xml_node node)
 Tally::~Tally()
 {
   model::tally_map.erase(id_);
+
+  if (results_)
+    std::free(results_);
 }
 
 Tally*
