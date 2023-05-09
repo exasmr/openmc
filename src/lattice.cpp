@@ -113,9 +113,8 @@ Lattice::to_hdf5(hid_t lattices_group) const
   hid_t lat_group = create_group(lattices_group, group_name);
 
   // Write the name and outer universe.
-  std::string name_tmp(name_);
-  if (!name_tmp.empty()) {
-    write_string(lat_group, "name", name_tmp, false);
+  if (!name_empty()) {
+    write_string(lat_group, "name", name(), false);
   }
 
   if (outer_ != NO_OUTER_UNIVERSE) {
@@ -145,10 +144,7 @@ Lattice::Lattice(pugi::xml_node lat_node, LatticeType type)
   }
 
   if (check_for_node(lat_node, "name")) {
-    std::string name_tmp = get_node_value(lat_node, "name");
-    if (name_tmp.size() >= MAX_LATTICE_NAME_LENGTH)
-      fatal_error("lattice name too long");
-    std::strcpy(name_, name_tmp.c_str());
+    set_name(get_node_value(lat_node, "name"));
   }
 
   if (check_for_node(lat_node, "outer")) {

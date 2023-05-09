@@ -15,6 +15,7 @@
 #include "dagmc.h"
 
 #include "openmc/constants.h"
+#include "openmc/named.h"
 #include "openmc/neighbor_list.h"
 #include "openmc/position.h"
 #include "openmc/surface.h"
@@ -93,7 +94,7 @@ public:
 //==============================================================================
 //==============================================================================
 
-class Cell {
+class Cell : public Named<8> {
 public:
   //----------------------------------------------------------------------------
   // Constructors, destructors, factory functions
@@ -171,14 +172,6 @@ public:
   //!   temperatures.
   void set_temperature(double T, int32_t instance = -1, bool set_contained = false);
 
-  //! Get the name of a cell
-  //! \return Cell name
-  const std::string& name() const { return name_; };
-
-  //! Set the temperature of a cell instance
-  //! \param[in] name Cell name
-  void set_name(const std::string& name) { name_ = name; };
-
   //! Get all cell instances contained by this cell
   //! \return Map with cell indexes as keys and instances as values
   std::unordered_map<int32_t, std::vector<int32_t>>
@@ -193,8 +186,7 @@ public:
   //----------------------------------------------------------------------------
   // Data members
 
-  int32_t id_;                //!< Unique ID
-  std::string name_;          //!< User-defined name
+  int32_t id_;                 //!< Unique ID
   Fill type_;                  //!< Material, universe, or lattice
   int32_t universe_;          //!< Universe # this cell is in
   int32_t fill_;              //!< Universe # filling this cell

@@ -93,10 +93,6 @@ class Material(IDManagerMixin):
 
     def __init__(self, material_id=None, name='', temperature=None):
 
-        if (len(name) >= 15):
-            warnings.warn("truncating material name %s to 15 chars" % name)
-            name = name[:15]
-
         # Initialize class attributes
         self.id = material_id
         self.name = name

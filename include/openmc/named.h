@@ -27,12 +27,22 @@ public:
 
   void set_name(std::string const& name)
   {
-    if (name.size() + 1 >= MaxNameLength)
-      fatal_error(
-        fmt::format("Trying to set a name which has a max size of {}, "
-                    "but passed in {} which is too long.",
-          MaxNameLength - 1, name));
-    else {
+    // if (name.size() + 1 >= MaxNameLength)
+    //   fatal_error(
+    //     fmt::format("Trying to set a name which has a max size of {}, "
+    //                 "but passed in {} which is too long.",
+    //       MaxNameLength - 1, name));
+    // else {
+    //   std::strcpy(name_, name.c_str());
+    // }
+
+    // the above is one possible implementation... but it's
+    // best for practical purposes to just truncate.
+
+    if (name.size() + 1 >= MaxNameLength) {
+      std::strcpy(name_, name.substr(0, MaxNameLength - 2).c_str());
+      name_[MaxNameLength - 1] = '\0';
+    } else {
       std::strcpy(name_, name.c_str());
     }
   }

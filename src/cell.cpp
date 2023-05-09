@@ -387,7 +387,7 @@ Cell::Cell(pugi::xml_node cell_node)
   }
 
   if (check_for_node(cell_node, "name")) {
-    name_ = get_node_value(cell_node, "name");
+    set_name(get_node_value(cell_node, "name"));
   }
 
   if (check_for_node(cell_node, "universe")) {
@@ -626,8 +626,8 @@ Cell::to_hdf5(hid_t cell_group) const
   // Create a group for this cell.
   auto group = create_group(cell_group, fmt::format("cell {}", id_));
 
-  if (!name_.empty()) {
-    write_string(group, "name", name_, false);
+  if (!name_empty()) {
+    write_string(group, "name", name(), false);
   }
 
   write_dataset(group, "universe", model::universes[universe_].id_);
