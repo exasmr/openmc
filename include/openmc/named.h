@@ -13,6 +13,11 @@
 // name from GPU, and can simply realloc data containing this.
 // That's not the case with std::string due to short string
 // optimization.
+//
+// If we really wanted to remove the length limitation on names
+// it would be straightforward to change the internal implementation
+// here to use a contiguous buffer that other classes can point
+// into. The other code could still use the same interface.
 namespace openmc {
 
 template<int MaxNameLength>

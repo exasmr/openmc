@@ -24,7 +24,7 @@ namespace openmc {
 //! A user-specified flux-weighted (or current) measurement.
 //==============================================================================
 
-class Tally : public Named<16> {
+class Tally : public Named<32> {
 public:
   //----------------------------------------------------------------------------
   // Constructors, destructors, factory functions
