@@ -1244,12 +1244,12 @@ openmc_extend_meshes(int32_t n, const char* type, int32_t* index_start,
   if (index_start) *index_start = model::meshes_size;
   std::string mesh_type;
 
-  // Create a new meshes array, and copy the old stuff to it
-  Mesh* meshes_tmp =
-    static_cast<Mesh*>(malloc((model::meshes_size + n) * sizeof(Mesh)));
-  memcpy(meshes_tmp, model::meshes, sizeof(Mesh) * model::meshes_size);
-  std::swap(meshes_tmp, model::meshes);
-  free(meshes_tmp);
+  model::meshes = static_cast<Mesh*>(
+    std::realloc(model::meshes, sizeof(Mesh) * (model::meshes_size + n)));
+  if (model::meshes == nullptr) {
+    set_errmsg("failed to realloc mesh array");
+    return OPENMC_E_ALLOCATE;
+  }
 
   for (int i = 0; i < n; ++i) {
     if (std::strcmp(type, "regular") == 0) {
@@ -2079,7 +2079,7 @@ void free_memory_mesh()
   for (int i = 0; i < model::meshes_size; i++) {
     model::meshes[i].~Mesh();
   }
-  free(model::meshes);
+  std::free(model::meshes);
   model::meshes_size = 0;
   model::mesh_map.clear();
 }
