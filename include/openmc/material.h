@@ -12,8 +12,9 @@
 #include <iostream>
 #include "xtensor/xtensor.hpp"
 
-#include "openmc/constants.h"
 #include "openmc/bremsstrahlung.h"
+#include "openmc/constants.h"
+#include "openmc/named.h"
 #include "openmc/particle.h"
 #include "openmc/vector.h"
 
@@ -51,161 +52,170 @@ extern vector2d<ThermalTable> materials_thermal_tables;
 //! A substance with constituent nuclides and thermal scattering data
 //==============================================================================
 
-class Material
-{
-public:
-  //----------------------------------------------------------------------------
-  // Constructors, destructors, factory functions
-  Material() {};
-  explicit Material(pugi::xml_node material_node);
-  ~Material();
+class Material : public Named<16> {
+ public:
+   //----------------------------------------------------------------------------
+   // Constructors, destructors, factory functions
+   Material() {};
+   explicit Material(pugi::xml_node material_node);
+   ~Material();
 
-  //----------------------------------------------------------------------------
-  // Methods
+   //----------------------------------------------------------------------------
+   // Methods
 
-  #pragma omp declare target
-  void calculate_xs(Particle& p, bool need_depletion_rx) const;
-  #pragma omp end declare target
+#pragma omp declare target
+   void calculate_xs(Particle& p, bool need_depletion_rx) const;
+#pragma omp end declare target
 
-  //! Assign thermal scattering tables to specific nuclides within the material
-  //! so the code knows when to apply bound thermal scattering data
-  void init_thermal();
+   //! Assign thermal scattering tables to specific nuclides within the material
+   //! so the code knows when to apply bound thermal scattering data
+   void init_thermal();
 
-  //! Set up mapping between global nuclides vector and indices in nuclide_
-  void init_nuclide_index();
+   //! Set up mapping between global nuclides vector and indices in nuclide_
+   void init_nuclide_index();
 
-  //! Finalize the material, assigning tables, normalize density, etc.
-  void finalize();
+   //! Finalize the material, assigning tables, normalize density, etc.
+   void finalize();
 
-  //! Write material data to HDF5
-  void to_hdf5(hid_t group) const;
+   //! Write material data to HDF5
+   void to_hdf5(hid_t group) const;
 
-  //! Export physical properties to HDF5
-  //! \param[in] group  HDF5 group to write to
-  void export_properties_hdf5(hid_t group) const;
+   //! Export physical properties to HDF5
+   //! \param[in] group  HDF5 group to write to
+   void export_properties_hdf5(hid_t group) const;
 
-  //! Import physical properties from HDF5
-  //! \param[in] group  HDF5 group to read from
-  void import_properties_hdf5(hid_t group);
+   //! Import physical properties from HDF5
+   //! \param[in] group  HDF5 group to read from
+   void import_properties_hdf5(hid_t group);
 
-  //! Add nuclide to the material
-  //
-  //! \param[in] nuclide Name of the nuclide
-  //! \param[in] density Density of the nuclide in [atom/b-cm]
-  void add_nuclide(const std::string& nuclide, double density);
+   //! Add nuclide to the material
+   //
+   //! \param[in] nuclide Name of the nuclide
+   //! \param[in] density Density of the nuclide in [atom/b-cm]
+   void add_nuclide(const std::string& nuclide, double density);
 
-  //! Set atom densities for the material
-  //
-  //! \param[in] name Name of each nuclide
-  //! \param[in] density Density of each nuclide in [atom/b-cm]
-  void set_densities(const std::vector<std::string>& name,
-    const std::vector<double>& density);
+   //! Set atom densities for the material
+   //
+   //! \param[in] name Name of each nuclide
+   //! \param[in] density Density of each nuclide in [atom/b-cm]
+   void set_densities(
+     const std::vector<std::string>& name, const std::vector<double>& density);
 
-  //----------------------------------------------------------------------------
-  // Accessors
+   //----------------------------------------------------------------------------
+   // Accessors
 
-  //! Get density in [atom/b-cm]
-  //! \return Density in [atom/b-cm]
-  double density() const { return density_; }
+   //! Get density in [atom/b-cm]
+   //! \return Density in [atom/b-cm]
+   double density() const { return density_; }
 
-  //! Get density in [g/cm^3]
-  //! \return Density in [g/cm^3]
-  double density_gpcc() const { return density_gpcc_; }
+   //! Get density in [g/cm^3]
+   //! \return Density in [g/cm^3]
+   double density_gpcc() const { return density_gpcc_; }
 
-  //! Get name
-  //! \return Material name
-  const std::string& name() const { return name_; }
+   //! Set total density of the material
+   //
+   //! \param[in] density Density value
+   //! \param[in] units Units of density
+   void set_density(double density, gsl::cstring_span units);
 
-  //! Set name
-  void set_name(const std::string& name) { name_ = name; }
+   //! Get nuclides in material
+   //! \return Indices into the global nuclides vector
+   gsl::span<const int> nuclides() const
+   {
+     return {nuclide_.data(), nuclide_.size()};
+   }
 
-  //! Set total density of the material
-  //
-  //! \param[in] density Density value
-  //! \param[in] units Units of density
-  void set_density(double density, gsl::cstring_span units);
+   //! Get densities of each nuclide in material
+   //! \return Densities in [atom/b-cm]
+   gsl::span<const double> densities() const
+   {
+     return {atom_density_.data(), atom_density_.size()};
+   }
 
-  //! Get nuclides in material
-  //! \return Indices into the global nuclides vector
-  gsl::span<const int> nuclides() const { return {nuclide_.data(), nuclide_.size()}; }
+   //! Get ID of material
+   //! \return ID of material
+   int32_t id() const { return id_; }
 
-  //! Get densities of each nuclide in material
-  //! \return Densities in [atom/b-cm]
-  gsl::span<const double> densities() const { return {atom_density_.data(), atom_density_.size()}; }
+   //! Assign a unique ID to the material
+   //! \param[in] Unique ID to assign. A value of -1 indicates that an ID
+   //!   should be automatically assigned.
+   void set_id(int32_t id);
 
-  //! Get ID of material
-  //! \return ID of material
-  int32_t id() const { return id_; }
+   //! Get whether material is fissionable
+   //! \return Whether material is fissionable
+   bool fissionable() const { return fissionable_; }
 
-  //! Assign a unique ID to the material
-  //! \param[in] Unique ID to assign. A value of -1 indicates that an ID
-  //!   should be automatically assigned.
-  void set_id(int32_t id);
+   //! Get volume of material
+   //! \return Volume in [cm^3]
+   double volume() const;
 
-  //! Get whether material is fissionable
-  //! \return Whether material is fissionable
-  bool fissionable() const { return fissionable_; }
+   //! Get temperature of material
+   //! \return Temperature in [K]
+   double temperature() const;
 
-  //! Get volume of material
-  //! \return Volume in [cm^3]
-  double volume() const;
+   void copy_to_device();
+   void release_from_device();
 
-  //! Get temperature of material
-  //! \return Temperature in [K]
-  double temperature() const;
-
-  void copy_to_device();
-  void release_from_device();
-
-  // Serialized global array accessor functions
-  #pragma omp declare target
-  int& nuclide(int i) const {                 return model::materials_nuclide(          index_, i);}
-  int& element(int i) const {                 return model::materials_element(          index_, i);}
-  double& atom_density(int i) const {         return model::materials_atom_density(     index_, i);}
-  int& p0(int i) const {                      return model::materials_p0(               index_, i);}
-  int& mat_nuclide_index(int i)const  {       return model::materials_mat_nuclide_index(index_, i);}
-  ThermalTable& thermal_tables(int i) const { return model::materials_thermal_tables(   index_, i);}
-  #pragma omp end declare target
+// Serialized global array accessor functions
+#pragma omp declare target
+   int& nuclide(int i) const { return model::materials_nuclide(index_, i); }
+   int& element(int i) const { return model::materials_element(index_, i); }
+   double& atom_density(int i) const
+   {
+     return model::materials_atom_density(index_, i);
+   }
+   int& p0(int i) const { return model::materials_p0(index_, i); }
+   int& mat_nuclide_index(int i) const
+   {
+     return model::materials_mat_nuclide_index(index_, i);
+   }
+   ThermalTable& thermal_tables(int i) const
+   {
+     return model::materials_thermal_tables(index_, i);
+   }
+#pragma omp end declare target
 
   //----------------------------------------------------------------------------
   // Data
-  int32_t id_ {C_NONE}; //!< Unique ID
-  std::string name_; //!< Name of material
-  vector<int> nuclide_; //!< Indices in nuclides vector
-  vector<int> element_; //!< Indices in elements vector
-  xt::xtensor<double, 1> atom_density_; //!< Nuclide atom density in [atom/b-cm]
-  double density_; //!< Total atom density in [atom/b-cm]
-  double density_gpcc_; //!< Total atom density in [g/cm^3]
-  double volume_ {-1.0}; //!< Volume in [cm^3]
-  bool fissionable_ {false}; //!< Does this material contain fissionable nuclides
-  bool depletable_ {false}; //!< Is the material depletable?
-  vector<int> p0_; //!< Indicate which nuclides are to be treated with iso-in-lab scattering
+   int32_t id_ {C_NONE}; //!< Unique ID
+   vector<int> nuclide_; //!< Indices in nuclides vector
+   vector<int> element_; //!< Indices in elements vector
+   xt::xtensor<double, 1>
+     atom_density_;       //!< Nuclide atom density in [atom/b-cm]
+   double density_;       //!< Total atom density in [atom/b-cm]
+   double density_gpcc_;  //!< Total atom density in [g/cm^3]
+   double volume_ {-1.0}; //!< Volume in [cm^3]
+   bool fissionable_ {
+     false}; //!< Does this material contain fissionable nuclides
+   bool depletable_ {false}; //!< Is the material depletable?
+   vector<int> p0_;          //!< Indicate which nuclides are to be treated with
+                             //!< iso-in-lab scattering
 
-  // To improve performance of tallying, we store an array (direct address
-  // table) that indicates for each nuclide in data::nuclides the index of the
-  // corresponding nuclide in the nuclide_ vector. If it is not present in the
-  // material, the entry is set to -1.
-  vector<int> mat_nuclide_index_;
+   // To improve performance of tallying, we store an array (direct address
+   // table) that indicates for each nuclide in data::nuclides the index of the
+   // corresponding nuclide in the nuclide_ vector. If it is not present in the
+   // material, the entry is set to -1.
+   vector<int> mat_nuclide_index_;
 
-  // Thermal scattering tables
-  vector<ThermalTable> thermal_tables_;
+   // Thermal scattering tables
+   vector<ThermalTable> thermal_tables_;
 
-  Bremsstrahlung ttb_;
+   Bremsstrahlung ttb_;
 
-private:
-  //----------------------------------------------------------------------------
-  // Private methods
+ private:
+   //----------------------------------------------------------------------------
+   // Private methods
 
-  //! Calculate the collision stopping power
-  void collision_stopping_power(double* s_col, bool positron);
+   //! Calculate the collision stopping power
+   void collision_stopping_power(double* s_col, bool positron);
 
-  //! Initialize bremsstrahlung data
-  void init_bremsstrahlung();
+   //! Initialize bremsstrahlung data
+   void init_bremsstrahlung();
 
-  //! Normalize density
-  void normalize_density();
+   //! Normalize density
+   void normalize_density();
 
-  #pragma omp declare target
+#pragma omp declare target
   void calculate_neutron_xs(Particle& p, bool need_depletion_rx) const;
   void calculate_photon_xs(Particle& p) const;
   #pragma omp end declare target

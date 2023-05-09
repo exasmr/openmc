@@ -47,8 +47,12 @@ PhotonInteraction::PhotonInteraction(hid_t group)
   index_ = data::elements_size;
 
   // Get name of nuclide from group, removing leading '/'
-  name_ = object_name(group).substr(1);
-  data::element_map[name_] = index_;
+  std::string name_tmp = object_name(group).substr(1);
+  if (name_tmp.size() >= MAX_ELEMENT_NAME_LENGTH) {
+    fatal_error("where did you find an element with such a long name? wtf");
+  }
+  std::strcpy(name_, name_tmp.c_str());
+  data::element_map[std::string(name_)] = index_;
 
   // Get atomic number
   read_attribute(group, "Z", Z_);
@@ -119,8 +123,8 @@ PhotonInteraction::PhotonInteraction(hid_t group)
   read_attribute(rgroup, "designators", designators);
   auto n_shell = designators.size();
   if (n_shell == 0) {
-    throw std::runtime_error{"Photoatomic data for " + name_ +
-      " does not have subshell data."};
+    throw std::runtime_error {"Photoatomic data for " + std::string(name_) +
+                              " does not have subshell data."};
   }
   shells_.resize(n_shell);
 
@@ -351,7 +355,7 @@ PhotonInteraction::PhotonInteraction(hid_t group)
 
 PhotonInteraction::~PhotonInteraction()
 {
-  data::element_map.erase(name_);
+  data::element_map.erase(std::string(name_));
 }
 
 int PhotonInteraction::calc_max_stack_size() const

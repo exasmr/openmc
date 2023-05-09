@@ -668,7 +668,7 @@ void initialize_data()
       int neutron = static_cast<int>(Particle::Type::neutron);
       if (max_E == data::energy_max[neutron]) {
         write_message(7, "Maximum neutron transport energy: {} eV for {}",
-          data::energy_max[neutron], nuc.name_);
+          data::energy_max[neutron], nuc.name());
         if (mpi::master && data::energy_max[neutron] < 20.0e6) {
           warning("Maximum neutron energy is below 20 MeV. This may bias "
             "the results.");

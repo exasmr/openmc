@@ -92,6 +92,11 @@ class Material(IDManagerMixin):
     used_ids = set()
 
     def __init__(self, material_id=None, name='', temperature=None):
+
+        if (len(name) >= 15):
+            warnings.warn("truncating material name %s to 15 chars" % name)
+            name = name[:15]
+
         # Initialize class attributes
         self.id = material_id
         self.name = name
@@ -247,7 +252,7 @@ class Material(IDManagerMixin):
             Z = openmc.data.zam(nuc)[0]
             if Z >= 90:
                 density += 1e24 * atoms_per_cc * openmc.data.atomic_mass(nuc) \
-                           / openmc.data.AVOGADRO
+                    / openmc.data.AVOGADRO
         return density*self.volume
 
     @classmethod
@@ -320,10 +325,10 @@ class Material(IDManagerMixin):
                 self._atoms = volume_calc.atoms[self.id]
             else:
                 raise ValueError('No volume information found for material ID={}.'
-                    .format(self.id))
+                                 .format(self.id))
         else:
             raise ValueError('No volume information found for material ID={}.'
-                .format(self.id))
+                             .format(self.id))
 
     def set_density(self, units, density=None):
         """Set the density of the material
@@ -376,7 +381,8 @@ class Material(IDManagerMixin):
 
         if self._macroscopic is not None:
             msg = 'Unable to add a Nuclide to Material ID="{}" as a ' \
-                  'macroscopic data-set has already been added'.format(self._id)
+                  'macroscopic data-set has already been added'.format(
+                      self._id)
             raise ValueError(msg)
 
         # If nuclide name doesn't look valid, give a warning
@@ -524,7 +530,8 @@ class Material(IDManagerMixin):
 
         if self._macroscopic is not None:
             msg = 'Unable to add an Element to Material ID="{}" as a ' \
-                  'macroscopic data-set has already been added'.format(self._id)
+                  'macroscopic data-set has already been added'.format(
+                      self._id)
             raise ValueError(msg)
 
         if enrichment is not None and enrichment_target is None:
@@ -611,10 +618,10 @@ class Material(IDManagerMixin):
                               .format(token)
                         raise ValueError(msg)
                 elif token not in ['(', ')', ''] and not token.isdigit():
-                        msg = 'Formula must be made from a sequence of ' \
-                              'element symbols, integers, and backets. ' \
-                              '{} is not an allowable entry.'.format(token)
-                        raise ValueError(msg)
+                    msg = 'Formula must be made from a sequence of ' \
+                          'element symbols, integers, and backets. ' \
+                          '{} is not an allowable entry.'.format(token)
+                    raise ValueError(msg)
 
         # Checks that the number of opening and closing brackets are equal
         if formula.count('(') != formula.count(')'):
@@ -676,12 +683,13 @@ class Material(IDManagerMixin):
 
         if self._macroscopic is not None:
             msg = 'Unable to add an S(a,b) table to Material ID="{}" as a ' \
-                  'macroscopic data-set has already been added'.format(self._id)
+                  'macroscopic data-set has already been added'.format(
+                      self._id)
             raise ValueError(msg)
 
         if not isinstance(name, str):
             msg = 'Unable to add an S(a,b) table to Material ID="{}" with a ' \
-                        'non-string table name "{}"'.format(self._id, name)
+                'non-string table name "{}"'.format(self._id, name)
             raise ValueError(msg)
 
         cv.check_type('S(a,b) fraction', fraction, Real)
@@ -796,7 +804,7 @@ class Material(IDManagerMixin):
         if not percent_in_atom:
             for n, nuc in enumerate(nucs):
                 nuc_densities[n] *= self.average_molar_mass / \
-                                    openmc.data.atomic_mass(nuc)
+                    openmc.data.atomic_mass(nuc)
 
         # Now that we have the atomic amounts, lets finish calculating densities
         sum_percent = np.sum(nuc_densities)
@@ -805,7 +813,7 @@ class Material(IDManagerMixin):
         # Convert the mass density to an atom density
         if not density_in_atom:
             density = -density / self.average_molar_mass * 1.E-24 \
-                      * openmc.data.AVOGADRO
+                * openmc.data.AVOGADRO
 
         nuc_densities = density * nuc_densities
 
@@ -834,7 +842,7 @@ class Material(IDManagerMixin):
         for nuc, atoms_per_cc in self.get_nuclide_atom_densities().values():
             if nuclide is None or nuclide == nuc:
                 density_i = 1e24 * atoms_per_cc * openmc.data.atomic_mass(nuc) \
-                            / openmc.data.AVOGADRO
+                    / openmc.data.AVOGADRO
                 mass_density += density_i
         return mass_density
 
@@ -1062,7 +1070,7 @@ class Material(IDManagerMixin):
                 nuc_per_cc = wgt*1.e24*atoms_per_bcm
                 nuclides_per_cc[nuc] += nuc_per_cc
                 mass_per_cc[nuc] += nuc_per_cc*openmc.data.atomic_mass(nuc) / \
-                                    openmc.data.AVOGADRO
+                    openmc.data.AVOGADRO
 
         # Create the new material with the desired name
         if name is None:
@@ -1071,7 +1079,8 @@ class Material(IDManagerMixin):
         new_mat = openmc.Material(name=name)
 
         # Compute atom fractions of nuclides and add them to the new material
-        tot_nuclides_per_cc = np.sum([dens for dens in nuclides_per_cc.values()])
+        tot_nuclides_per_cc = np.sum(
+            [dens for dens in nuclides_per_cc.values()])
         for nuc, atom_dens in nuclides_per_cc.items():
             new_mat.add_nuclide(nuc, atom_dens/tot_nuclides_per_cc, 'ao')
 
@@ -1079,7 +1088,7 @@ class Material(IDManagerMixin):
         new_density = np.sum([dens for dens in mass_per_cc.values()])
         new_mat.set_density('g/cm3', new_density)
 
-        # If any of the involved materials is depletable, the new material is 
+        # If any of the involved materials is depletable, the new material is
         # depletable
         new_mat.depletable = any(mat.depletable for mat in materials)
 
@@ -1245,7 +1254,8 @@ class Materials(cv.CheckedList):
                 clean_indentation(element, level=1)
                 element.tail = element.tail.strip(' ')
                 fh.write('  ')
-                reorder_attributes(element)  # TODO: Remove when support is Python 3.8+
+                # TODO: Remove when support is Python 3.8+
+                reorder_attributes(element)
                 ET.ElementTree(element).write(fh, encoding='unicode')
 
             # Write the <material> elements.
@@ -1254,7 +1264,8 @@ class Materials(cv.CheckedList):
                 clean_indentation(element, level=1)
                 element.tail = element.tail.strip(' ')
                 fh.write('  ')
-                reorder_attributes(element)  # TODO: Remove when support is Python 3.8+
+                # TODO: Remove when support is Python 3.8+
+                reorder_attributes(element)
                 ET.ElementTree(element).write(fh, encoding='unicode')
 
             # Write the closing tag for the root element.

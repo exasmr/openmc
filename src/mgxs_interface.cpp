@@ -139,8 +139,8 @@ void MgxsInterface::create_macro_xs()
         mgxs_ptr.push_back(&nuclides_[i_nuclide]);
       }
 
-      macro_xs_.emplace_back(mat.name_, kTs[i], mgxs_ptr, atom_densities,
-          num_energy_groups_, num_delayed_groups_);
+      macro_xs_.emplace_back(mat.name(), kTs[i], mgxs_ptr, atom_densities,
+        num_energy_groups_, num_delayed_groups_);
     } else {
       // Preserve the ordering of materials by including a blank entry
       macro_xs_.emplace_back();

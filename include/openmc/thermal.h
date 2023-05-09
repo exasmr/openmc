@@ -14,10 +14,10 @@
 #include "openmc/endf.h"
 #include "openmc/endf_flat.h"
 #include "openmc/hdf5_interface.h"
+#include "openmc/named.h"
 #include "openmc/particle.h"
 #include "openmc/secondary_flat.h"
 #include "openmc/vector.h"
-
 namespace openmc {
 
 //==============================================================================
@@ -88,7 +88,7 @@ private:
 //! moderating materials such as water, graphite, BeO, etc.
 //==============================================================================
 
-class ThermalScattering {
+class ThermalScattering : public Named<16> {
 public:
   ThermalScattering(hid_t group, const std::vector<double>& temperature);
 
@@ -118,7 +118,6 @@ public:
   void copy_to_device();
   void release_from_device();
 
-  std::string name_; //!< name of table, e.g. "c_H_in_H2O"
   double awr_;       //!< weight of nucleus in neutron masses
   double energy_max_; //!< maximum energy for thermal scattering in [eV]
   vector<double> kTs_;  //!< temperatures in [eV] (k*T)

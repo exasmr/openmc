@@ -67,7 +67,8 @@ public:
   void release_from_device();
 
   // Data members
-  std::string name_; //!< Name of element, e.g. "Zr"
+  static constexpr int MAX_ELEMENT_NAME_LENGTH = 8;
+  char name_[MAX_ELEMENT_NAME_LENGTH]; //!< Name of element, e.g. "Zr"
   int Z_; //!< Atomic number
   gsl::index index_; //!< Index in global elements vector
 

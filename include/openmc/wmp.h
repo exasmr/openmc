@@ -10,6 +10,7 @@
 #include <string>
 #include <tuple>
 
+#include "openmc/named.h"
 #include "openmc/vector.h"
 
 namespace openmc {
@@ -36,7 +37,7 @@ constexpr std::array<int, 2> WMP_VERSION {1, 1};
 // Windowed multipole data
 //========================================================================
 
-class WindowedMultipole {
+class WindowedMultipole : Named<8> {
 public:
   // Types
   struct WindowInfo {
@@ -83,7 +84,6 @@ public:
   #pragma omp end declare target
 
   // Data members
-  std::string name_; //!< Name of nuclide
   double E_min_; //!< Minimum energy in [eV]
   double E_max_; //!< Maximum energy in [eV]
   double sqrt_awr_; //!< Square root of atomic weight ratio

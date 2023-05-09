@@ -16,6 +16,7 @@
 #include "openmc/constants.h"
 #include "openmc/endf.h"
 #include "openmc/material.h"
+#include "openmc/named.h"
 #include "openmc/particle.h"
 #include "openmc/reaction.h"
 #include "openmc/reaction_product.h"
@@ -30,7 +31,7 @@ namespace openmc {
 // Data for a nuclide
 //==============================================================================
 
-class Nuclide {
+class Nuclide : public Named<8> {
 public:
   // Types, aliases
   using EmissionMode = ReactionProduct::EmissionMode;
@@ -548,8 +549,6 @@ public:
   void copy_to_device();
   void release_from_device();
 
-  // Data members
-  std::string name_; //!< Name of nuclide, e.g. "U235"
   int Z_; //!< Atomic number
   int A_; //!< Mass number
   int metastable_; //!< Metastable state

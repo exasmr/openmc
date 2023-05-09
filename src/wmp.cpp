@@ -23,7 +23,7 @@ const int WindowedMultipole::MAX_POLY_COEFFICIENTS = 11;
 WindowedMultipole::WindowedMultipole(hid_t group)
 {
   // Get name of nuclide from group, removing leading '/'
-  name_ = object_name(group).substr(1);
+  set_name(object_name(group).substr(1));
 
   // Read scalar values.
   read_dataset(group, "spacing", inv_spacing_);
@@ -51,15 +51,19 @@ WindowedMultipole::WindowedMultipole(hid_t group)
   xt::xtensor<bool, 1> broaden_poly;
   read_dataset(group, "broaden_poly", broaden_poly);
   if (n_windows != broaden_poly.shape()[0]) {
-    fatal_error("broaden_poly array shape is not consistent with the windows "
-      "array shape in WMP library for " + name_ + ".");
+    fatal_error(
+      fmt::format("broaden_poly array shape is not consistent with the windows "
+                  "array shape in WMP library for {}.",
+        name()));
   }
 
   // Read the "curvefit" array.
   read_dataset(group, "curvefit", curvefit_);
   if (n_windows != curvefit_.shape()[0]) {
-    fatal_error("curvefit array shape is not consistent with the windows "
-      "array shape in WMP library for " + name_ + ".");
+    fatal_error(
+      fmt::format("curvefit array shape is not consistent with the windows "
+                  "array shape in WMP library for {}.",
+        name()));
   }
   fit_order_ = curvefit_.shape()[1] - 1;
 
@@ -276,7 +280,7 @@ void read_multipole_data(int i_nuclide)
 {
   // Look for WMP data in cross_sections.xml
   auto& nuc {data::nuclides[i_nuclide]};
-  auto it = data::library_map.find({Library::Type::wmp, nuc.name_});
+  auto it = data::library_map.find({Library::Type::wmp, nuc.name()});
 
   // If no WMP library for this nuclide, just return
   if (it == data::library_map.end()) return;
@@ -286,14 +290,14 @@ void read_multipole_data(int i_nuclide)
   std::string& filename = data::libraries[idx].path_;
 
   // Display message
-  write_message(6, "Reading {} WMP data from {}", nuc.name_, filename);
+  write_message(6, "Reading {} WMP data from {}", nuc.name(), filename);
 
   // Open file and make sure version is sufficient
   hid_t file = file_open(filename, 'r');
   check_wmp_version(file);
 
   // Read nuclide data from HDF5
-  hid_t group = open_group(file, nuc.name_.c_str());
+  hid_t group = open_group(file, nuc.name());
   nuc.multipole_ = std::make_unique<WindowedMultipole>(group);
   close_group(group);
   file_close(file);

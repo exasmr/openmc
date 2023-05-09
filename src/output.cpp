@@ -651,8 +651,9 @@ write_tallies()
           deriv.diff_material);
         break;
       case DerivativeVariable::NUCLIDE_DENSITY:
-        fmt::print(tallies_out, " Nuclide density derivative Material {} Nuclide {}\n",
-          deriv.diff_material, data::nuclides[deriv.diff_nuclide].name_);
+        fmt::print(tallies_out,
+          " Nuclide density derivative Material {} Nuclide {}\n",
+          deriv.diff_material, data::nuclides[deriv.diff_nuclide].name());
         break;
       case DerivativeVariable::TEMPERATURE:
         fmt::print(tallies_out, " Temperature derivative Material {}\n",
@@ -702,7 +703,7 @@ write_tallies()
         } else {
           if (settings::run_CE) {
             fmt::print(tallies_out, "{0:{1}}{2}\n", "", indent + 1,
-              data::nuclides[i_nuclide].name_);
+              data::nuclides[i_nuclide].name());
           } else {
             fmt::print(tallies_out, "{0:{1}}{2}\n", "", indent + 1,
               data::mg.nuclides_[i_nuclide].name);

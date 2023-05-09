@@ -39,10 +39,7 @@ ThermalScattering* device_thermal_scatt {nullptr};
 ThermalScattering::ThermalScattering(hid_t group, const std::vector<double>& temperature)
 {
   // Get name of table from group
-  name_ = object_name(group);
-
-  // Get rid of leading '/'
-  name_ = name_.substr(1);
+  set_name(object_name(group).substr(1));
 
   read_attribute(group, "atomic_weight_ratio", awr_);
   read_attribute(group, "energy_max", energy_max_);
@@ -90,7 +87,8 @@ ThermalScattering::ThermalScattering(hid_t group, const std::vector<double>& tem
         }
       } else {
         fatal_error(fmt::format("Nuclear data library does not contain cross "
-          "sections for {} at or near {} K.", name_, std::round(T)));
+                                "sections for {} at or near {} K.",
+          name(), std::round(T)));
       }
     }
     break;
@@ -114,8 +112,10 @@ ThermalScattering::ThermalScattering(hid_t group, const std::vector<double>& tem
         }
       }
       if (!found) {
-        fatal_error(fmt::format("Nuclear data library does not contain cross "
-          "sections for {} at temperatures that bound {} K.", name_, std::round(T)));
+        fatal_error(
+          fmt::format("Nuclear data library does not contain cross "
+                      "sections for {} at temperatures that bound {} K.",
+            name(), std::round(T)));
       }
     }
   }

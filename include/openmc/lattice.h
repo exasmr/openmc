@@ -56,7 +56,9 @@ class Lattice
 {
 public:
   int32_t id_;                         //!< Universe ID number
-  std::string name_;                   //!< User-defined name
+
+  static constexpr int MAX_LATTICE_NAME_LENGTH = 10;
+  char name_[MAX_LATTICE_NAME_LENGTH]; //!< User-defined name
   LatticeType type_;
   vector<int32_t> universes_;     //!< Universes filling each lattice tile
   int32_t outer_ {NO_OUTER_UNIVERSE};  //!< Universe tiled outside the lattice

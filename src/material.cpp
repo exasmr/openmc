@@ -69,7 +69,7 @@ Material::Material(pugi::xml_node node)
   }
 
   if (check_for_node(node, "name")) {
-    name_ = get_node_value(node, "name");
+    this->set_name(get_node_value(node, "name"));
   }
 
   if (check_for_node(node, "depletable")) {
@@ -439,7 +439,7 @@ void Material::init_thermal()
     // name
     bool found = false;
     for (int j = 0; j < nuclide_.size(); ++j) {
-      const auto& name {data::nuclides[nuclide_[j]].name_};
+      const auto& name(data::nuclides[nuclide_[j]].name());
       if (contains(data::thermal_scatt[table.index_table].nuclides_, name)) {
         tables.push_back({table.index_table, nuclide_[j], table.fraction});
         found = true;
@@ -448,9 +448,9 @@ void Material::init_thermal()
 
     // Check to make sure thermal scattering table matched a nuclide
     if (!found) {
-      fatal_error("Thermal scattering table " + data::thermal_scatt[
-        table.index_table].name_  + " did not match any nuclide on material "
-        + std::to_string(id_));
+      fatal_error(fmt::format(
+        "Thermal scattering table {} did not match any nuclide on material {}",
+        data::thermal_scatt[table.index_table].name(), id_));
     }
   }
 
@@ -459,7 +459,7 @@ void Material::init_thermal()
     for (int k = j+1; k < tables.size(); ++k) {
       if (tables[j].index_nuclide == tables[k].index_nuclide) {
         int index = tables[j].index_nuclide;
-        auto name = data::nuclides[index].name_;
+        auto name = std::string(data::nuclides[index].name());
         fatal_error(name + " in material " + std::to_string(id_) + " was found "
           "in multiple thermal scattering tables. Each nuclide can appear in "
           "only one table per material.");
@@ -995,7 +995,7 @@ void Material::to_hdf5(hid_t group) const
   if (temperature_ > 0.0) {
     write_attribute(material_group, "temperature", temperature_);
   }
-  write_dataset(material_group, "name", name_);
+  write_dataset(material_group, "name", name());
   write_dataset(material_group, "atom_density", density_);
 
   // Copy nuclide/macro name for each nuclide to vector
@@ -1005,7 +1005,7 @@ void Material::to_hdf5(hid_t group) const
   if (settings::run_CE) {
     for (int i = 0; i < nuclide_.size(); ++i) {
       int i_nuc = nuclide_[i];
-      nuc_names.push_back(data::nuclides[i_nuc].name_);
+      nuc_names.emplace_back(data::nuclides[i_nuc].name());
       nuc_densities.push_back(atom_density_(i));
     }
   } else {
@@ -1034,7 +1034,7 @@ void Material::to_hdf5(hid_t group) const
   if (!thermal_tables_.empty()) {
     std::vector<std::string> sab_names;
     for (const auto& table : thermal_tables_) {
-      sab_names.push_back(data::thermal_scatt[table.index_table].name_);
+      sab_names.push_back(data::thermal_scatt[table.index_table].name());
     }
     write_dataset(material_group, "sab_names", sab_names);
   }
@@ -1064,7 +1064,7 @@ void Material::add_nuclide(const std::string& name, double density)
   // Check if nuclide is already in material
   for (int i = 0; i < nuclide_.size(); ++i) {
     int i_nuc = nuclide_[i];
-    if (data::nuclides[i_nuc].name_ == name) {
+    if (data::nuclides[i_nuc].name() == name) {
       double awr = data::nuclides[i_nuc].awr_;
       density_ += density - atom_density_(i);
       density_gpcc_ += (density - atom_density_(i))
@@ -1461,7 +1461,7 @@ openmc_material_get_name(int32_t index, const char** name) {
     return OPENMC_E_OUT_OF_BOUNDS;
   }
 
-  *name = model::materials[index].name().data();
+  *name = model::materials[index].name_data();
 
   return 0;
 }

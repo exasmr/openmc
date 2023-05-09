@@ -48,7 +48,7 @@ TallyDerivative::TallyDerivative(pugi::xml_node node)
     std::string nuclide_name = get_node_value(node, "nuclide");
     bool found = false;
     for (auto i = 0; i < data::nuclides_size; ++i) {
-      if (data::nuclides[i].name_ == nuclide_name) {
+      if (data::nuclides[i].name() == nuclide_name) {
         found = true;
         diff_nuclide = i;
       }
@@ -636,7 +636,7 @@ void score_collision_derivative(Particle& p)
       if (material.nuclide_[i] != deriv.diff_nuclide) {
         fatal_error(fmt::format(
           "Could not find nuclide {} in material {} for tally derivative {}",
-          data::nuclides[deriv.diff_nuclide].name_, material.id_, deriv.id));
+          data::nuclides[deriv.diff_nuclide].name(), material.id_, deriv.id));
       }
       // phi is proportional to Sigma_s
       // (1 / phi) * (d_phi / d_N) = (d_Sigma_s / d_N) / Sigma_s

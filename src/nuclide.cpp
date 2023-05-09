@@ -60,8 +60,8 @@ Nuclide::Nuclide(hid_t group, const std::vector<double>& temperature)
   index_ = data::nuclides_size;
 
   // Get name of nuclide from group, removing leading '/'
-  name_ = object_name(group).substr(1);
-  data::nuclide_map[name_] = index_;
+  set_name(object_name(group).substr(1));
+  data::nuclide_map[name()] = index_;
 
   read_attribute(group, "Z", Z_);
   read_attribute(group, "A", A_);
@@ -82,8 +82,9 @@ Nuclide::Nuclide(hid_t group, const std::vector<double>& temperature)
   // If only one temperature is available, revert to nearest temperature
   if (temps_available.size() == 1 && settings::temperature_method == TemperatureMethod::INTERPOLATION) {
     if (mpi::master) {
-      warning("Cross sections for " + name_ + " are only available at one "
-        "temperature. Reverting to nearest temperature method.");
+      warning("Cross sections for " + name() +
+              " are only available at one "
+              "temperature. Reverting to nearest temperature method.");
     }
     settings::temperature_method = TemperatureMethod::NEAREST;
   }
@@ -133,14 +134,16 @@ Nuclide::Nuclide(hid_t group, const std::vector<double>& temperature)
 
           // Write warning for resonance scattering data if 0K is not available
           if (std::abs(T_actual - T_desired) > 0 && T_desired == 0 && mpi::master) {
-            warning(name_ + " does not contain 0K data needed for resonance "
-              "scattering options selected. Using data at " + std::to_string(T_actual)
-              + " K instead.");
+            warning(name() +
+                    " does not contain 0K data needed for resonance "
+                    "scattering options selected. Using data at " +
+                    std::to_string(T_actual) + " K instead.");
           }
         }
       } else {
-        fatal_error("Nuclear data library does not contain cross sections for " +
-          name_ + " at or near " + std::to_string(T_desired) + " K.");
+        fatal_error(
+          "Nuclear data library does not contain cross sections for " + name() +
+          " at or near " + std::to_string(T_desired) + " K.");
       }
     }
     break;
@@ -165,8 +168,9 @@ Nuclide::Nuclide(hid_t group, const std::vector<double>& temperature)
       }
 
       if (!found_pair) {
-        fatal_error("Nuclear data library does not contain cross sections for " +
-          name_ +" at temperatures that bound " + std::to_string(T_desired) + " K.");
+        fatal_error(
+          "Nuclear data library does not contain cross sections for " + name() +
+          " at temperatures that bound " + std::to_string(T_desired) + " K.");
       }
     }
     break;
@@ -245,7 +249,7 @@ Nuclide::Nuclide(hid_t group, const std::vector<double>& temperature)
       // Check for negative values
       if (xt::any(urr_data_[i].prob_ < 0.) && mpi::master) {
         warning("Negative value(s) found on probability table for nuclide " +
-                name_ + " at " + temp_str);
+                name() + " at " + temp_str);
       }
     }
 
@@ -256,9 +260,11 @@ Nuclide::Nuclide(hid_t group, const std::vector<double>& temperature)
       // Make sure inelastic flags are consistent for different temperatures
       for (int i = 0; i < urr_data_.size() - 1; ++i) {
         if (urr_data_[i].inelastic_flag_ != urr_data_[i+1].inelastic_flag_) {
-          fatal_error(fmt::format("URR inelastic flag is not consistent for "
+          fatal_error(fmt::format(
+            "URR inelastic flag is not consistent for "
             "multiple temperatures in nuclide {}. This most likely indicates "
-            "a problem in how the data was processed.", name_));
+            "a problem in how the data was processed.",
+            name()));
         }
       }
 
@@ -362,7 +368,7 @@ void Nuclide::flatten_wmp_data() {
 
 Nuclide::~Nuclide()
 {
-  data::nuclide_map.erase(name_);
+  data::nuclide_map.erase(name());
 
   // These arrays are only allocated if 1D flattening function was called
   if (flat_temp_offsets_ != nullptr) {
@@ -477,14 +483,15 @@ void Nuclide::create_derived(const Function1DFlatContainer* prompt_photons, cons
     // Determine if this nuclide should be treated as a resonant scatterer
     if (!settings::res_scat_nuclides.empty()) {
       // If resonant nuclides were specified, check the list explicitly
-      for (const auto& name : settings::res_scat_nuclides) {
-        if (name_ == name) {
+      for (const auto& findname : settings::res_scat_nuclides) {
+        if (name() == findname) {
           resonant_ = true;
 
           // Make sure nuclide has 0K data
           if (energy_0K_.empty()) {
-            fatal_error("Cannot treat " + name_ + " as a resonant scatterer "
-              "because 0 K elastic scattering data is not present.");
+            fatal_error("Cannot treat " + name() +
+                        " as a resonant scatterer "
+                        "because 0 K elastic scattering data is not present.");
           }
           break;
         }
@@ -922,7 +929,7 @@ extern "C" int
 openmc_nuclide_name(int index, const char** name)
 {
   if (index >= 0 && index < data::nuclides_size) {
-    *name = data::nuclides[index].name_.data();
+    *name = data::nuclides[index].name_data();
     return 0;
   } else {
     set_errmsg("Index in nuclides vector is out of bounds.");
