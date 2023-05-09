@@ -1,4 +1,5 @@
 #include "openmc/neighbor_list.h"
+#include <cstdio>
 
 #ifndef DEVICE_PRINTF
 #define printf(fmt, ...) (0)

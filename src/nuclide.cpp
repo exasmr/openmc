@@ -839,15 +839,19 @@ extern "C" int openmc_load_nuclide(const char* name, const double* temps, int n)
     hid_t group = open_group(file_id, name);
     std::vector<double> temperature{temps, temps + n};
 
-    data::nuclides = static_cast<Nuclide*>(std::realloc(
-      data::nuclides, (data::nuclides_capacity + 1) * sizeof(Nuclide)));
-    if (data::nuclides == nullptr) {
-      set_errmsg("Failed to realloc nuclide array in openmc_load_nuclide.");
-      return OPENMC_E_ALLOCATE;
+    // reallocate if we need more space
+    if (data::nuclides_size == data::nuclides_capacity) {
+      data::nuclides = static_cast<Nuclide*>(std::realloc(
+        data::nuclides, (data::nuclides_capacity + 1) * sizeof(Nuclide)));
+      if (data::nuclides == nullptr) {
+        set_errmsg("Failed to realloc nuclide array in openmc_load_nuclide.");
+        return OPENMC_E_ALLOCATE;
+      }
+      ++data::nuclides_capacity;
     }
+
     new(data::nuclides + data::nuclides_size) Nuclide(group, temperature);
     ++data::nuclides_size;
-    ++data::nuclides_capacity;
 
     close_group(group);
     file_close(file_id);
