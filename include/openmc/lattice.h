@@ -52,7 +52,7 @@ namespace model {
 class LatticeIter;
 class ReverseLatticeIter;
 
-class Lattice : Named<16> {
+class Lattice : Named {
 public:
   int32_t id_;                         //!< Universe ID number
 

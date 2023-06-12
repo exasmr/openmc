@@ -65,8 +65,7 @@ public:
   #pragma omp end declare target
 private:
   struct Reaction {
-    // Default constructor
-    Reaction() { }
+    Reaction() = default;
 
     // Data members
     std::unique_ptr<Function1DFlatContainer> xs; //!< Cross section
@@ -88,9 +87,11 @@ private:
 //! moderating materials such as water, graphite, BeO, etc.
 //==============================================================================
 
-class ThermalScattering : public Named<16> {
+class ThermalScattering : public Named {
 public:
   ThermalScattering(hid_t group, const std::vector<double>& temperature);
+  ThermalScattering(ThermalScattering const&) = delete;
+  ThermalScattering(ThermalScattering&&) = default;
 
   //! Determine inelastic/elastic cross section at given energy
   //!

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdlib>
 #include <cstring> // strcpy
 #include <string>
 
@@ -7,59 +8,80 @@
 
 #include "openmc/error.h"
 
-// Mixin class that gives something a statically sized name.
+// Mixin class that gives something a name, represented as methods
+// called name, name_data, and name_empty.
 // This is useful because it lets the name be trivially copied,
-// which means that we're going to be able to safely access the
-// name from GPU, and can simply realloc data containing this.
+// so stuff doesn't break when memcpying data around to the GPU.
 // That's not the case with std::string due to short string
 // optimization.
-//
-// If we really wanted to remove the length limitation on names
-// it would be straightforward to change the internal implementation
-// here to use a contiguous buffer that other classes can point
-// into. The other code could still use the same interface.
 namespace openmc {
 
-template<int MaxNameLength>
 class Named {
 public:
-  Named()
+  Named() = default;
+
+  Named(Named&& other)
   {
-    static_assert(MaxNameLength > 0,
-      "must have at least one character for null terminator");
-    name_[0] = '\0';
+    name_ = other.name_;
+    other.name_ = nullptr;
   }
 
-  void set_name(std::string const& name)
+  Named& operator=(Named&& other)
   {
-    // if (name.size() + 1 >= MaxNameLength)
-    //   fatal_error(
-    //     fmt::format("Trying to set a name which has a max size of {}, "
-    //                 "but passed in {} which is too long.",
-    //       MaxNameLength - 1, name));
-    // else {
-    //   std::strcpy(name_, name.c_str());
-    // }
+    name_ = other.name_;
+    other.name_ = nullptr;
+    return *this;
+  }
 
-    // the above is one possible implementation... but it's
-    // best for practical purposes to just truncate.
-
-    if (name.size() + 1 >= MaxNameLength) {
-      std::strcpy(name_, name.substr(0, MaxNameLength - 2).c_str());
-      name_[MaxNameLength - 1] = '\0';
-    } else {
-      std::strcpy(name_, name.c_str());
+  Named(const Named& other)
+  {
+    if (other.name_) {
+      auto len = std::strlen(other.name_);
+      name_ = (char*)std::malloc(len + 1);
+      std::strcpy(name_, other.name_);
+      name_[len] = '\0';
     }
   }
 
-  std::string name() const { return name_; }
+  Named& operator=(const Named& other)
+  {
+    free();
+    if (other.name_) {
+      auto len = std::strlen(other.name_);
+      name_ = (char*)std::malloc(len + 1);
+      std::strcpy(name_, other.name_);
+      name_[len] = '\0';
+    }
+    return *this;
+  }
 
+  ~Named() { free(); }
+
+  void set_name(std::string const& name)
+  {
+    if (name.empty()) {
+      free();
+    } else {
+      name_ = (char*)std::realloc(name_, name.size() + 1);
+      std::strcpy(name_, name.c_str());
+      name_[name.size()] = '\0';
+    }
+  }
+
+  const std::string name() const { return std::string(name_); }
   const char* name_data() const { return name_; }
-
-  bool name_empty() const { return name_[0] == '\0'; }
+  bool name_empty() const { return name_ == nullptr; }
 
 private:
-  char name_[MaxNameLength];
+  char* name_ {nullptr};
+
+  void free()
+  {
+    if (name_) {
+      std::free(name_);
+      name_ = nullptr;
+    }
+  }
 };
 
 } // namespace openmc

@@ -52,7 +52,7 @@ extern vector2d<ThermalTable> materials_thermal_tables;
 //! A substance with constituent nuclides and thermal scattering data
 //==============================================================================
 
-class Material : public Named<16> {
+class Material : public Named {
  public:
    //----------------------------------------------------------------------------
    // Constructors, destructors, factory functions

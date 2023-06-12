@@ -31,7 +31,7 @@ namespace openmc {
 // Data for a nuclide
 //==============================================================================
 
-class Nuclide : public Named<8> {
+class Nuclide : public Named {
 public:
   // Types, aliases
   using EmissionMode = ReactionProduct::EmissionMode;

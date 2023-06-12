@@ -37,7 +37,7 @@ constexpr std::array<int, 2> WMP_VERSION {1, 1};
 // Windowed multipole data
 //========================================================================
 
-class WindowedMultipole : Named<8> {
+class WindowedMultipole : Named {
 public:
   // Types
   struct WindowInfo {
