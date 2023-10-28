@@ -783,13 +783,12 @@ void transport_history_based_device()
     transport_history_based_single_particle(p, absorption, collision, tracklength, leakage, need_depletion_rx);
   }
 
-  simulation::total_weight = total_weight;
-
   // Write local reduction results to global values
-  global_tally_absorption  = absorption;
-  global_tally_collision   = collision;
-  global_tally_tracklength = tracklength;
-  global_tally_leakage     = leakage;
+  global_tally_absorption  += absorption;
+  global_tally_collision   += collision;
+  global_tally_tracklength += tracklength;
+  global_tally_leakage     += leakage;
+  simulation::total_weight += total_weight;
 
   // Copy back fission bank to host
   simulation::fission_bank.copy_device_to_host();
@@ -814,11 +813,11 @@ void transport_history_based()
     transport_history_based_single_particle(p, absorption, collision, tracklength, leakage, need_depletion_rx);
   }
   // Write local reduction results to global values
-  global_tally_absorption  = absorption;
-  global_tally_collision   = collision;
-  global_tally_tracklength = tracklength;
-  global_tally_leakage     = leakage;
-  simulation::total_weight = total_weight;
+  global_tally_absorption  += absorption;
+  global_tally_collision   += collision;
+  global_tally_tracklength += tracklength;
+  global_tally_leakage     += leakage;
+  simulation::total_weight += total_weight;
 }
 
 void transport_event_based()
