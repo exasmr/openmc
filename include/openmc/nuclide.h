@@ -278,8 +278,13 @@ public:
       // Perform Interpolation
       total       = f_comp * total_low       + f * total_next;
       absorption  = f_comp * absorption_low  + f * absorption_next;
-      fission     = f_comp * fission_low     + f * fission_next;
-      nu_fission  = f_comp * nu_fission_low  + f * nu_fission_next;
+      if (fissionable_) {
+        fission     = f_comp * fission_low     + f * fission_next;
+        nu_fission  = f_comp * nu_fission_low  + f * nu_fission_next;
+      } else {
+        fission = 0.0;
+        nu_fission = 0.0;
+      }
       photon_prod = f_comp * photon_prod_low + f * photon_prod_next;
 
       // Depletion-related reactions
