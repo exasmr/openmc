@@ -174,12 +174,7 @@ public:
     std::swap(data_, other.data_);
   }
 
-  void copy_to_device() {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wopenmp-mapping"
-#pragma omp target enter data map(to: data_[:size_])
-#pragma GCC diagnostic pop
-  }
+
 
   void allocate_on_device() {
 #pragma GCC diagnostic push
@@ -193,6 +188,14 @@ public:
 #pragma GCC diagnostic ignored "-Wopenmp-mapping"
 #pragma omp target update to(data_[:size_])
 #pragma GCC diagnostic pop
+  }
+
+  void copy_to_device() {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wopenmp-mapping"
+#pragma omp target enter data map(alloc: data_[:size_])
+#pragma GCC diagnostic pop
+  update_to_device();
   }
 
   void update_from_device() {
