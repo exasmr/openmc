@@ -39,7 +39,7 @@
                 "CMAKE_CXX_COMPILER": "clang++"
             },
             "environment": {
-                "LLVM_CXX_FLAGS": "-fopenmp -fopenmp-cuda-mode -fno-relaxed-template-template-args"
+                "LLVM_CXX_FLAGS": "-fopenmp -fopenmp-cuda-mode"
             }
         },
         {
