@@ -5,7 +5,7 @@
             "name": "base",
             "generator": "Unix Makefiles",
             "cacheVariables": {
-                "CMAKE_CXX_FLAGS": "$env{PRESET_CXX_FLAGS} $env{INTEL_CXX_FLAGS} $env{LLVM_CXX_FLAGS} $env{COMMON_CXX_FLAGS}"
+                "CMAKE_CXX_FLAGS": "$env{PRESET_CXX_FLAGS} $env{LTO_CXX_FLAGS} $env{INTEL_CXX_FLAGS} $env{LLVM_CXX_FLAGS} $env{COMMON_CXX_FLAGS}"
             },
             "environment": {
                 "COMMON_CXX_FLAGS": "-Dgsl_CONFIG_CONTRACT_CHECKING_OFF -Wno-tautological-constant-compare -Wno-openmp-mapping"
@@ -125,7 +125,7 @@
             "inherits": ["llvm_a100"],
             "displayName": "LLVM Clang A100",
             "environment": {
-                "PRESET_CXX_FLAGS": "-foffload-lto"
+                "LTO_CXX_FLAGS": "-foffload-lto"
             }
         },
         {
